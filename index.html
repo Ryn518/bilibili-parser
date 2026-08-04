@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B0B0E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="课表规划">
+  <title>📚 B站课表规划器</title>
+  <link id="manifestLink" rel="manifest" href="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0B0B0E; --gold: #C9A96E; --gold-light: #E8D5A8;
+      --gold-dim: rgba(201,169,110,0.15); --glass: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.08); --text: #F5F5F7;
+      --text2: rgba(245,245,247,0.6); --text3: rgba(245,245,247,0.35);
+      --radius: 16px; --radius-sm: 10px; --green: #6BCB77;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100dvh; line-height: 1.6;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 90% 60% at 50% -10%, rgba(201,169,110,0.1), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 80%, rgba(201,169,110,0.05), transparent 50%);
+    }
+
+    /* 顶栏 */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(11,11,14,0.85); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-inner {
+      max-width: 960px; margin: 0 auto; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { font-weight: 700; font-size: 1rem; color: var(--gold-light); }
+    .nav-tabs { display: flex; gap: 8px; }
+    .nav-tab {
+      padding: 8px 18px; border-radius: 999px; border: none;
+      background: transparent; color: var(--text2); font-family: inherit;
+      font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: 0.2s;
+    }
+    .nav-tab.active { background: var(--gold-dim); color: var(--gold); }
+    .nav-tab .badge {
+      display: inline-block; min-width: 18px; height: 18px; line-height: 18px;
+      background: var(--gold); color: var(--bg); border-radius: 999px;
+      font-size: 0.7rem; font-weight: 700; margin-left: 4px; text-align: center;
+    }
+
+    .page { display: none; position: relative; z-index: 1; }
+    .page.active { display: block; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 24px 20px 80px; }
+
+    .glass {
+      background: var(--glass); backdrop-filter: blur(20px);
+      border: 1px solid var(--border); border-radius: var(--radius);
+    }
+
+    /* 输入区 */
+    .hero-mini { text-align: center; padding: 32px 0 24px; }
+    .hero-mini h1 {
+      font-size: clamp(1.4rem, 4vw, 1.85rem); font-weight: 700;
+      background: linear-gradient(135deg, var(--text), var(--gold-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-mini p { color: var(--text2); font-size: 0.9rem; margin-top: 8px; }
+    .input-card { padding: 24px; margin-bottom: 24px; }
+    .input-label { font-size: 0.8rem; color: var(--text2); margin-bottom: 10px; display: block; }
+    .input-row { display: flex; flex-direction: column; gap: 12px; }
+    .url-input, .num-input {
+      width: 100%; padding: 14px 16px; font-size: 1rem; font-family: inherit;
+      color: var(--text); background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none;
+    }
+    .url-input:focus, .num-input:focus { border-color: rgba(201,169,110,0.5); box-shadow: 0 0 0 3px var(--gold-dim); }
+    .daily-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .parse-hint { font-size: 0.78rem; color: var(--gold); margin-top: 10px; line-height: 1.4; }
+    .num-input { max-width: 90px; text-align: center; padding: 10px; }
+    .btn {
+      padding: 14px 24px; font-family: inherit; font-weight: 600; font-size: 0.95rem;
+      border-radius: var(--radius-sm); cursor: pointer; border: none; transition: 0.15s;
+      touch-action: manipulation; min-height: 48px;
+    }
+    .btn-gold { background: linear-gradient(135deg, var(--gold), #B8924A); color: var(--bg); width: 100%; }
+    .btn-gold:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,169,110,0.3); }
+    .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { background: transparent; border: 1px solid rgba(201,169,110,0.4); color: var(--gold); }
+    .btn-outline:hover { background: var(--gold-dim); }
+
+    /* 进度仪表盘 */
+    .dashboard { padding: 28px; margin-bottom: 20px; }
+    .dash-top { display: flex; gap: 20px; align-items: center; margin-bottom: 24px; }
+    .dash-cover {
+      width: 100px; height: 62px; border-radius: 10px; object-fit: cover;
+      border: 1px solid var(--border); flex-shrink: 0;
+    }
+    .dash-info { flex: 1; min-width: 0; }
+    .dash-title { font-size: 1.05rem; font-weight: 600; line-height: 1.4; margin-bottom: 6px; }
+    .dash-meta { font-size: 0.82rem; color: var(--gold); }
+    .progress-block { margin-bottom: 16px; }
+    .progress-head { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 8px; }
+    .progress-head span:first-child { color: var(--text2); }
+    .progress-head span:last-child { color: var(--gold); font-weight: 600; }
+    .progress-track {
+      height: 10px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #B8924A, var(--gold), var(--gold-light));
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .stat-box {
+      text-align: center; padding: 14px 8px;
+      background: rgba(255,255,255,0.03); border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-num { font-size: 1.4rem; font-weight: 700; color: var(--gold-light); }
+    .stat-label { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+
+    /* 今日焦点 */
+    .today-focus {
+      padding: 24px; margin-bottom: 20px;
+      background: linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.04));
+      border: 1px solid rgba(201,169,110,0.3); border-radius: var(--radius);
+    }
+    .today-tag { font-size: 0.72rem; color: var(--gold); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .today-range { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; line-height: 1.5; word-break: break-word; }
+    .today-range-sub { font-size: 0.78rem; color: var(--text3); font-weight: 400; margin-bottom: 8px; }
+    .today-tip { font-size: 0.85rem; color: var(--text2); line-height: 1.55; margin-bottom: 16px; }
+    .today-items { display: flex; flex-direction: column; gap: 8px; }
+    .today-pill {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); font-size: 0.85rem;
+    }
+    .today-pill .pnum {
+      background: var(--gold-dim); color: var(--gold); font-weight: 700;
+      padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; flex-shrink: 0;
+    }
+    .check-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .check-btn {
+      flex: 1; padding: 12px; border-radius: var(--radius-sm); border: none;
+      font-family: inherit; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+      background: linear-gradient(135deg, var(--green), #4CAF50); color: #fff;
+      transition: 0.2s;
+    }
+    .check-btn.done { background: rgba(255,255,255,0.08); color: var(--text2); }
+    .check-btn:hover { opacity: 0.9; }
+
+    /* 日程列表 */
+    .section-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-head h3 { font-size: 0.95rem; font-weight: 600; }
+    .section-head span { font-size: 0.8rem; color: var(--text3); }
+    .day-grid { display: flex; flex-direction: column; gap: 10px; }
+    .day-row {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm); cursor: pointer; transition: 0.2s;
+    }
+    .day-row:hover { border-color: rgba(201,169,110,0.25); }
+    .day-row.current { border-color: rgba(201,169,110,0.45); background: rgba(201,169,110,0.06); }
+    .day-row.completed { opacity: 0.55; }
+    .day-row.completed .day-check { background: var(--green); border-color: var(--green); }
+    .day-check {
+      width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; transition: 0.2s;
+    }
+    .day-check.checked { background: var(--green); border-color: var(--green); color: #fff; }
+    .day-row-body { flex: 1; min-width: 0; }
+    .day-row-title { font-size: 0.88rem; font-weight: 600; line-height: 1.45; word-break: break-word; }
+    .day-row-catalog { font-size: 0.82rem; color: var(--gold-light); margin-top: 4px; line-height: 1.45; word-break: break-word; }
+    .day-row-sub { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+    .day-row-time { font-size: 0.78rem; color: var(--text2); flex-shrink: 0; }
+    .day-detail {
+      display: none; padding: 0 16px 14px 50px;
+      background: rgba(255,255,255,0.02); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      margin-top: -6px; border: 1px solid rgba(255,255,255,0.04); border-top: none;
+    }
+    .day-detail.open { display: block; }
+    .day-detail-item { font-size: 0.8rem; color: var(--text2); padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .day-detail-item:last-child { border-bottom: none; }
+
+    .actions-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .actions-row .btn { flex: 1; min-width: 140px; }
+
+    /* 过期提示 */
+    .expiry-banner {
+      padding: 16px 18px; margin-bottom: 20px; border-radius: var(--radius-sm);
+      background: rgba(232, 184, 109, 0.12); border: 1px solid rgba(232, 184, 109, 0.45);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;
+    }
+    .expiry-banner p { font-size: 0.88rem; color: var(--text2); flex: 1; min-width: 200px; }
+    .expiry-banner .btn { flex: 0 0 auto; min-width: 120px; width: auto; }
+
+    /* PWA 引导 */
+    .pwa-banner {
+      position: fixed; bottom: 20px; right: 20px; left: 20px; max-width: 360px; margin-left: auto;
+      z-index: 120; padding: 14px 16px; border-radius: var(--radius-sm);
+      background: rgba(20, 20, 24, 0.95); backdrop-filter: blur(12px);
+      border: 1px solid rgba(201, 169, 110, 0.35);
+      display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .pwa-banner p { flex: 1; font-size: 0.85rem; color: var(--text2); }
+    .pwa-close {
+      background: transparent; border: none; color: var(--text3); font-size: 1.2rem;
+      cursor: pointer; padding: 4px 8px; line-height: 1;
+    }
+
+    /* 我的 */
+    .mine-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+    .mine-empty p { margin-top: 12px; font-size: 0.9rem; }
+    .mine-list { display: flex; flex-direction: column; gap: 14px; }
+    .mine-card {
+      display: flex; gap: 16px; padding: 18px; align-items: center;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: var(--radius); cursor: pointer; transition: 0.2s;
+    }
+    .mine-card:hover { border-color: rgba(201,169,110,0.35); transform: translateY(-1px); }
+    .mine-cover { width: 80px; height: 50px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .mine-body { flex: 1; min-width: 0; }
+    .mine-title { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mine-progress { margin-top: 8px; }
+    .mine-progress-text { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+    .mine-pct { font-size: 1.1rem; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+
+    /* 加载：小狗进度条 */
+    .loading-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(11,11,14,0.88); backdrop-filter: blur(8px);
+      flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    }
+    .loading-overlay.active { display: flex; }
+    .load-box { width: min(320px, 85vw); text-align: center; }
+    .load-text { font-size: 0.9rem; color: var(--text2); margin-bottom: 16px; }
+    .load-track {
+      position: relative; height: 8px; background: rgba(255,255,255,0.08);
+      border-radius: 999px; overflow: visible;
+    }
+    .load-bar {
+      height: 100%; width: 0%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      transition: width 0.3s ease;
+    }
+    .load-dog {
+      position: absolute; top: -28px; left: 0%; transform: translateX(-50%);
+      font-size: 1.6rem; transition: left 0.3s ease;
+      animation: dogBounce 0.4s ease-in-out infinite alternate;
+    }
+    @keyframes dogBounce { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-4px); } }
+    .load-pct { font-size: 0.8rem; color: var(--gold); margin-top: 12px; font-weight: 600; }
+
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
+      background: rgba(201,169,110,0.95); color: var(--bg);
+      padding: 12px 24px; border-radius: 999px; font-size: 0.88rem; font-weight: 600;
+      z-index: 300; opacity: 0; transition: 0.3s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 150;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #141418; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 28px; max-width: 360px; width: 100%; text-align: center;
+    }
+    .modal h3 { margin-bottom: 8px; }
+    .modal p { font-size: 0.85rem; color: var(--text2); margin-bottom: 20px; }
+    .modal-qr { width: 180px; height: 180px; border-radius: 10px; border: 1px solid var(--border); }
+    .modal-close {
+      margin-top: 16px; padding: 10px 28px; font-family: inherit;
+      background: transparent; border: 1px solid var(--border); color: var(--text2);
+      border-radius: 999px; cursor: pointer;
+    }
+
+    /* 打卡卡片 */
+    #checkinCard {
+      position: fixed; left: 0; top: 0; opacity: 0; pointer-events: none; z-index: -9999;
+      width: 600px; padding: 48px 40px;
+      background: linear-gradient(160deg, #0B0B0E, #1A1A2E);
+      font-family: 'Inter', sans-serif; color: #F5F5F7;
+    }
+    .card-deco { width: 60px; height: 3px; background: linear-gradient(90deg, #C9A96E, transparent); margin-bottom: 20px; }
+    .card-title { font-size: 26px; font-weight: 700; line-height: 1.4; margin-bottom: 10px; }
+    .card-subtitle { font-size: 15px; color: #C9A96E; margin-bottom: 20px; }
+    .card-progress-wrap { margin-bottom: 24px; }
+    .card-progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
+    .card-progress-fill { height: 100%; background: #C9A96E; border-radius: 999px; }
+    .card-progress-text { font-size: 13px; color: rgba(245,245,247,0.5); margin-top: 8px; }
+    .card-date { font-size: 13px; color: rgba(245,245,247,0.4); margin-bottom: 16px; }
+    .card-footer { font-size: 11px; color: rgba(245,245,247,0.25); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px; }
+
+    .footer { text-align: center; padding: 32px 20px; }
+    .about { font-size: 0.72rem; color: var(--text3); margin-top: 16px; }
+
+    @media (min-width: 560px) {
+      .input-row { flex-direction: row; }
+      .url-input { flex: 1; }
+      .btn-gold { width: auto; min-width: 130px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="load-box">
+      <p class="load-text" id="loadText">小狗正在帮你拉课程数据…</p>
+      <div class="load-track">
+        <div class="load-bar" id="loadBar"></div>
+        <div class="load-dog" id="loadDog">🐕</div>
+      </div>
+      <p class="load-pct" id="loadPct">0%</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- PWA 添加到桌面引导 -->
+  <div class="pwa-banner" id="pwaBanner" hidden>
+    <p>📱 添加到主屏幕，下次一键打开</p>
+    <button type="button" class="pwa-close" id="pwaClose" aria-label="关闭">×</button>
+  </div>
+
+  <div class="modal-overlay" id="donateModal">
+    <div class="modal">
+      <h3>请我喝杯咖啡 ☕</h3>
+      <p>你的支持是我更新的动力</p>
+      <img class="modal-qr" id="donateQr" src="" alt="微信赞赏码">
+      <br><button class="modal-close" id="modalClose">关闭</button>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand">📚 B站课表规划器</span>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-page="plan">规划</button>
+        <button class="nav-tab" data-page="mine">我的<span class="badge" id="mineBadge" hidden>0</span></button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 规划页 -->
+  <div class="page active" id="pagePlan">
+    <div class="wrap">
+      <div class="hero-mini" id="heroMini">
+        <h1>智能课表，轻松学完</h1>
+        <p>粘贴 B 站课程链接，自动生成每日计划并追踪进度</p>
+      </div>
+
+      <section class="input-card glass" id="inputSection">
+        <label class="input-label" for="urlInput">B站课程链接</label>
+        <div class="input-row">
+          <input type="text" id="urlInput" class="url-input"
+            placeholder="可直接粘贴B站分享文字（含标题），无需删减" autocomplete="off" spellcheck="false">
+          <button type="button" id="startBtn" class="btn btn-gold">开始规划</button>
+        </div>
+        <p class="parse-hint" id="parseHint" hidden></p>
+        <div class="daily-row">
+          <label for="dailyMinutes">每天学习</label>
+          <input type="number" id="dailyMinutes" class="num-input" value="45" min="10" max="480">
+          <label>分钟</label>
+        </div>
+      </section>
+
+      <section id="resultsSection" hidden>
+        <div id="expiryBanner" class="expiry-banner glass" hidden>
+          <p>⚠️ 数据已过期（超过7天），建议点击【重新规划】刷新课程数据</p>
+          <button type="button" id="expiryReplanBtn" class="btn btn-gold">重新规划</button>
+        </div>
+        <div class="dashboard glass" id="dashboard"></div>
+        <div class="today-focus" id="todayFocus"></div>
+
+        <div class="section-head">
+          <h3>全部日程</h3>
+          <span id="planCountLabel"></span>
+        </div>
+        <div class="day-grid" id="planList"></div>
+
+        <div class="actions-row">
+          <button type="button" id="genCardBtn" class="btn btn-outline">📸 生成打卡卡片</button>
+          <button type="button" id="replanBtn" class="btn btn-outline">🔄 重新规划</button>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <button type="button" id="donateBtn" class="btn btn-outline">☕ 请我喝杯咖啡</button>
+        <p class="about">仅供学习交流 · 数据来自 B 站公开 API · 进度保存在本地</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- 我的页 -->
+  <div class="page" id="pageMine">
+    <div class="wrap">
+      <div class="hero-mini"><h1>我的学习</h1><p>记录每一次进步，见证成长</p></div>
+      <div id="mineContent"></div>
+    </div>
+  </div>
+
+  <!-- 打卡卡片 -->
+  <div id="checkinCard">
+    <div class="card-deco"></div>
+    <div class="card-title" id="cardCourseName"></div>
+    <div class="card-subtitle" id="cardTotalDays"></div>
+    <div class="card-progress-wrap">
+      <div class="card-progress-bar"><div class="card-progress-fill" id="cardProgressFill"></div></div>
+      <div class="card-progress-text" id="cardProgressText"></div>
+    </div>
+    <div class="card-date" id="cardDate"></div>
+    <div class="card-footer">生成 by B站课表规划器</div>
+  </div>
+
+  <script>
+    const CONFIG = {
+      DONATE_QR_URL: 'https://via.placeholder.com/200x200/C9A96E/0B0B0E?text=微信赞赏码',
+      PROXIES: [
+        { build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+        { build: u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, wrap: true },
+        { build: u => `https://corsproxy.io/?url=${encodeURIComponent(u)}` }
+      ],
+      JSONP_TIMEOUT: 22000,
+      CACHE_TTL: 30 * 60 * 1000,
+      STORAGE_KEY: 'bili-planner-v1',
+      PLAN_CACHE_KEY: 'bili-planner-plan-cache',  // 规划快照（7天有效）
+      PWA_DISMISS_KEY: 'bili-planner-pwa-dismiss',
+      PLAN_EXPIRE_DAYS: 7
+    };
+
+    let courseData = null, planData = [], progress = { completedDays: [] };
+    let isLoading = false, loadTimer = null, currentDayIdx = 0, fetchGeneration = 0;
+    const memCache = new Map();
+    let lastParsedHint = '';
+
+    const $ = id => document.getElementById(id);
+
+    // ===== 工具 =====
+    function showToast(msg) {
+      const t = $('toast'); t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function formatDuration(sec) {
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+      return h > 0 ? `${h}小时${m}分钟` : `${m}分钟`;
+    }
+    function formatShort(sec) {
+      const m = Math.floor(sec / 60), s = sec % 60;
+      return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}秒`;
+    }
+    function debounce(fn, ms) {
+      let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+    }
+
+    // ===== 规划快照缓存 & URL 分享 =====
+    /** 保存完整规划到 localStorage（成功后调用，无需再请求 API） */
+    function savePlanCache(dailyMin) {
+      if (!courseData || !planData.length) return;
+      const cache = {
+        bvid: courseData.bvid,
+        title: courseData.title,
+        totalSeconds: courseData.totalSeconds,
+        pList: courseData.episodes.map(e => ({ index: e.index, title: e.title, duration: e.duration })),
+        plan: planData,
+        dailyMinutes: dailyMin,
+        generatedAt: new Date().toISOString().slice(0, 10),
+        coverUrl: courseData.cover || ''
+      };
+      try { localStorage.setItem(CONFIG.PLAN_CACHE_KEY, JSON.stringify(cache)); } catch (e) {
+        console.warn('规划缓存写入失败', e);
+      }
+    }
+
+    /** 读取规划快照 */
+    function loadPlanCache() {
+      try {
+        const raw = localStorage.getItem(CONFIG.PLAN_CACHE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    }
+
+    /** 是否超过 7 天过期 */
+    function isPlanCacheExpired(cache) {
+      if (!cache?.generatedAt) return true;
+      const gen = new Date(cache.generatedAt + 'T00:00:00');
+      const diff = (Date.now() - gen.getTime()) / 86400000;
+      return diff > CONFIG.PLAN_EXPIRE_DAYS;
+    }
+
+    /** 从快照恢复界面（不请求 B 站 API） */
+    function restoreFromPlanCache(cache, expired) {
+      courseData = {
+        bvid: cache.bvid,
+        title: cache.title,
+        cover: cache.coverUrl || '',
+        totalSeconds: cache.totalSeconds,
+        episodes: (cache.pList || []).map((p, i) => ({
+          index: p.index ?? i, title: p.title, duration: p.duration
+        }))
+      };
+      planData = cache.plan || [];
+      dailyMinutes.value = cache.dailyMinutes || 45;
+      progress = getProgress(cache.bvid);
+      urlInput.value = 'https://www.bilibili.com/video/' + cache.bvid;
+      $('expiryBanner').hidden = !expired;
+      renderAll(cache.dailyMinutes || 45);
+      scrollToResults();
+      if (!expired) showToast('📂 已从本地缓存恢复');
+    }
+
+    /** 更新分享 URL：?bvid=BVxxx&daily=45 */
+    function updateShareUrl(bvid, daily) {
+      try {
+        const url = new URL(location.href);
+        url.searchParams.set('bvid', bvid);
+        url.searchParams.set('daily', String(daily));
+        history.pushState({ bvid, daily }, '', url);
+      } catch (e) { console.warn('URL 更新失败', e); }
+    }
+
+    /** 清空 URL 参数 */
+    function clearShareUrl() {
+      try {
+        const url = new URL(location.href);
+        url.search = '';
+        history.pushState({}, '', url.pathname + url.hash);
+      } catch (e) { console.warn('URL 清空失败', e); }
+    }
+
+    /** 读取 URL 分享参数 */
+    function getUrlParams() {
+      try {
+        const p = new URLSearchParams(location.search);
+        const bvid = normalizeBvid(p.get('bvid'));
+        if (!bvid) return null;
+        const daily = Math.max(10, Math.min(480, parseInt(p.get('daily')) || 45));
+        return { bvid, daily };
+      } catch { return null; }
+    }
+
+    /** 平滑滚动到结果区 */
+    function scrollToResults() {
+      $('heroMini').hidden = true;
+      $('resultsSection').hidden = false;
+      requestAnimationFrame(() => {
+        setTimeout(() => $('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      });
+    }
+
+    /** 重新规划：清空缓存并回到输入态 */
+    function replan() {
+      fetchGeneration++;
+      try { localStorage.removeItem(CONFIG.PLAN_CACHE_KEY); } catch {}
+      clearShareUrl();
+      resetResults();
+      $('expiryBanner').hidden = true;
+      urlInput.value = '';
+      $('parseHint').hidden = true;
+      urlInput.focus();
+      showToast('已清空，请输入新课程链接');
+    }
+
+    /** 规划成功后统一收尾 */
+    function applyPlanResult(dailyMin) {
+      saveProgress(courseData.bvid, {
+        title: courseData.title, cover: courseData.cover,
+        totalDays: planData.length, dailyMin,
+        completedDays: progress.completedDays || []
+      });
+      progress = getProgress(courseData.bvid);
+      savePlanCache(dailyMin);
+      updateShareUrl(courseData.bvid, dailyMin);
+      $('expiryBanner').hidden = true;
+      renderAll(dailyMin);
+      stopLoadAnim(true);
+      scrollToResults();
+    }
+
+    /** 通过 URL 参数 bvid 自动规划（分享链接打开） */
+    async function startPlanningFromBvid(bvid, dailyMin) {
+      if (isLoading) return;
+      dailyMin = Math.max(10, Math.min(480, dailyMin || 45));
+      dailyMinutes.value = dailyMin;
+      urlInput.value = 'https://www.bilibili.com/video/' + bvid;
+      const gen = ++fetchGeneration;
+      resetResults();
+      $('loadingOverlay').classList.add('active');
+      $('startBtn').disabled = true;
+      isLoading = true;
+      startLoadAnim();
+      try {
+        setLoadProgress(30, '🐕 分享链接加载 ' + bvid + ' …');
+        const data = await fetchCourse(bvid, '');
+        if (gen !== fetchGeneration) return;
+        if (!bvidMatch(data.bvid, bvid)) throw new Error('课程数据校验失败');
+        courseData = data;
+        planData = generatePlan(courseData.episodes, dailyMin);
+        progress = getProgress(courseData.bvid);
+        setLoadProgress(95, '🐕 马上就好…');
+        applyPlanResult(dailyMin);
+        showToast('✅ 分享链接已加载');
+      } catch (e) {
+        if (gen !== fetchGeneration) return;
+        stopLoadAnim(false);
+        $('loadingOverlay').classList.remove('active');
+        resetResults();
+        showToast(/fetch|网络|超时/i.test(e.message || '') ? '抓取失败，请稍后重试' : (e.message || '加载失败'));
+      } finally {
+        if (gen === fetchGeneration) { isLoading = false; $('startBtn').disabled = false; }
+      }
+    }
+
+    // ===== PWA：内联 Manifest + Service Worker =====
+    /** 用 Canvas 绘制 📚 图标（192/512） */
+    function generatePwaIcon(size) {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#0B0B0E';
+      ctx.fillRect(0, 0, size, size);
+      ctx.font = `${Math.round(size * 0.48)}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📚', size / 2, size / 2 + size * 0.02);
+      return c.toDataURL('image/png');
+    }
+
+    /** 注入内联 manifest（data URI，无需额外文件） */
+    function initInlineManifest() {
+      try {
+        const icon192 = generatePwaIcon(192);
+        const icon512 = generatePwaIcon(512);
+        const manifest = {
+          name: 'B站课表规划器',
+          short_name: '课表规划',
+          start_url: location.pathname + location.search || './',
+          scope: './',
+          display: 'standalone',
+          background_color: '#0B0B0E',
+          theme_color: '#0B0B0E',
+          icons: [
+            { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any' }
+          ]
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        $('manifestLink').href = URL.createObjectURL(blob);
+      } catch (e) { console.warn('PWA Manifest 初始化失败', e); }
+    }
+
+    /** 注册 Service Worker（Cache First，仅缓存静态资源） */
+    function registerServiceWorker() {
+      if (!('serviceWorker' in navigator)) {
+        console.info('当前浏览器不支持 Service Worker，核心功能不受影响');
+        return;
+      }
+      if (location.protocol === 'file:') {
+        console.info('file:// 协议下无法注册 SW，请部署到 http/https 后启用离线缓存');
+        return;
+      }
+      const swCode = `
+        const CACHE = 'bili-planner-v1';
+        const ASSETS = [
+          self.location.href,
+          'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+          'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
+        ];
+        self.addEventListener('install', e => {
+          e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {})).then(() => self.skipWaiting()));
+        });
+        self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+        self.addEventListener('fetch', e => {
+          if (e.request.url.includes('api.bilibili.com') || e.request.url.includes('allorigins')) return;
+          e.respondWith(
+            caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+              if (res.ok && (e.request.url.includes('gstatic.com') || e.request.url.includes('jsdelivr'))) {
+                const copy = res.clone();
+                caches.open(CACHE).then(c => c.put(e.request, copy));
+              }
+              return res;
+            }).catch(() => cached))
+          );
+        });
+      `;
+      try {
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(blob))
+          .catch(e => console.warn('Service Worker 注册失败', e));
+      } catch (e) { console.warn('Service Worker 不可用', e); }
+    }
+
+    /** PWA 添加到桌面引导（非 standalone 且未关闭过则显示） */
+    function initPwaBanner() {
+      const dismissed = localStorage.getItem(CONFIG.PWA_DISMISS_KEY);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+      if (!dismissed && !isStandalone) $('pwaBanner').hidden = false;
+      $('pwaClose').onclick = () => {
+        $('pwaBanner').hidden = true;
+        localStorage.setItem(CONFIG.PWA_DISMISS_KEY, '1');
+      };
+    }
+
+    /** 页面初始化：URL 分享 > 本地缓存 > 输入界面 */
+    async function initApp() {
+      initInlineManifest();
+      registerServiceWorker();
+      initPwaBanner();
+      updateMineBadge();
+
+      const urlParams = getUrlParams();
+      if (urlParams) {
+        await startPlanningFromBvid(urlParams.bvid, urlParams.daily);
+        return;
+      }
+
+      const cache = loadPlanCache();
+      if (cache?.bvid && cache.plan?.length) {
+        restoreFromPlanCache(cache, isPlanCacheExpired(cache));
+      }
+    }
+
+    // ===== 进度条加载 =====
+    function setLoadProgress(pct, text) {
+      $('loadBar').style.width = pct + '%';
+      $('loadDog').style.left = pct + '%';
+      $('loadPct').textContent = Math.round(pct) + '%';
+      if (text) $('loadText').textContent = text;
+    }
+    function startLoadAnim() {
+      let p = 0;
+      setLoadProgress(0, '🐕 小狗正在帮你拉课程数据…');
+      loadTimer = setInterval(() => {
+        if (p < 85) { p += Math.random() * 8 + 2; setLoadProgress(Math.min(p, 85)); }
+      }, 400);
+    }
+    function stopLoadAnim(ok) {
+      clearInterval(loadTimer);
+      setLoadProgress(ok ? 100 : 0, ok ? '🎉 搞定啦！' : '');
+      setTimeout(() => { $('loadingOverlay').classList.remove('active'); setLoadProgress(0); }, ok ? 400 : 0);
+    }
+    function showLoading(show) {
+      isLoading = show;
+      $('loadingOverlay').classList.toggle('active', show);
+      $('startBtn').disabled = show;
+      if (show) startLoadAnim(); else stopLoadAnim(true);
+    }
+
+    // ===== 本地存储 =====
+    function loadAll() {
+      try { return JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || '{}'); }
+      catch { return {}; }
+    }
+    function saveAll(data) { localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data)); }
+    function getProgress(bvid) {
+      const all = loadAll();
+      return all[bvid] || { completedDays: [], dailyMin: 45 };
+    }
+    function saveProgress(bvid, patch) {
+      const all = loadAll();
+      all[bvid] = { ...(all[bvid] || {}), ...patch, updatedAt: Date.now() };
+      saveAll(all);
+      updateMineBadge();
+    }
+    function updateMineBadge() {
+      const n = Object.keys(loadAll()).length;
+      const b = $('mineBadge');
+      if (n > 0) { b.hidden = false; b.textContent = n; } else b.hidden = true;
+    }
+
+    // ===== 链接解析（支持 B 站直接复制的「标题 + 链接 + 参数」） =====
+    function normalizeBvid(bv) {
+      if (!bv) return null;
+      const m = String(bv).match(/^(BV1[a-zA-Z0-9]{9})$/i);
+      return m ? m[1] : null;
+    }
+    function bvidMatch(a, b) {
+      return a && b && a.toUpperCase() === b.toUpperCase();
+    }
+    function cleanPasteText(raw) {
+      return String(raw).replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00a0/g, ' ').trim();
+    }
+    function extractUrls(text) {
+      const urls = [];
+      const patterns = [
+        /https?:\/\/(?:www\.)?bilibili\.com\/[^\s\u3000【】[\]（）]+/gi,
+        /https?:\/\/b23\.tv\/[^\s\u3000【】[\]（）]+/gi,
+        /(?:^|\s)((?:www\.)?bilibili\.com\/video\/[^\s\u3000【】[\]（）]+)/gi
+      ];
+      for (const re of patterns) {
+        for (const m of text.matchAll(re)) {
+          let u = (m[1] || m[0]).trim().replace(/[，。！？；、\)】」'".,]+$/g, '');
+          if (!u.startsWith('http')) u = 'https://' + u;
+          urls.push(u);
+        }
+      }
+      return [...new Set(urls)];
+    }
+    function extractIdFromUrl(url) {
+      const bv = url.match(/bilibili\.com\/video\/(BV1[a-zA-Z0-9]{9})/i);
+      if (bv) return normalizeBvid(bv[1]);
+      const av = url.match(/bilibili\.com\/video\/av(\d+)/i);
+      if (av) return { aid: av[1] };
+      if (/b23\.tv/i.test(url)) return { shortUrl: url };
+      return null;
+    }
+    function extractBvFromText(text) {
+      text = cleanPasteText(text);
+      for (const u of extractUrls(text)) {
+        const id = extractIdFromUrl(u);
+        if (id && !id.shortUrl) return id;
+      }
+      const all = [...text.matchAll(/BV1[a-zA-Z0-9]{9}/gi)];
+      if (all.length) return normalizeBvid(all[all.length - 1][0]);
+      const av = text.match(/(?:\/video\/)?av(\d+)/i) || text.match(/\bav(\d+)\b/i);
+      if (av) return { aid: av[1] };
+      for (const u of extractUrls(text)) {
+        if (extractIdFromUrl(u)?.shortUrl) return { shortUrl: u };
+      }
+      return null;
+    }
+    function parsePasteInput(raw) {
+      const text = cleanPasteText(raw);
+      const titleMatch = text.match(/[【\[]([^\]]{2,80}?)[】\]]/);
+      const hintTitle = titleMatch ? titleMatch[1].replace(/^【+/, '').trim() : '';
+      return { videoId: extractBvFromText(text), hintTitle };
+    }
+    function showParseHint(raw) {
+      const hint = $('parseHint');
+      if (!raw.trim()) { hint.hidden = true; return; }
+      const { videoId, hintTitle } = parsePasteInput(raw);
+      hint.style.color = '';
+      if (videoId && typeof videoId === 'string') {
+        hint.hidden = false;
+        hint.textContent = '✓ 已识别：' + videoId + (hintTitle ? ' · ' + hintTitle.slice(0, 24) : '');
+        lastParsedHint = hintTitle;
+      } else if (videoId?.aid) {
+        hint.hidden = false;
+        hint.textContent = '✓ 已识别：av' + videoId.aid;
+      } else if (videoId?.shortUrl) {
+        hint.hidden = false;
+        hint.textContent = '✓ 已识别短链，点击开始规划将自动展开';
+      } else {
+        hint.hidden = false;
+        hint.style.color = '#E8B86D';
+        hint.textContent = '⚠ 未识别到 BV 号，请确认含 bilibili.com/video/BV…';
+      }
+    }
+    async function resolveVideoId(input) {
+      const parsed = parsePasteInput(input);
+      if (parsed.videoId && !parsed.videoId.shortUrl) return parsed.videoId;
+      if (parsed.videoId?.shortUrl) {
+        const text = await fetchText(parsed.videoId.shortUrl);
+        const id = extractBvFromText(text);
+        if (id && !id.shortUrl) return id;
+      }
+      for (const u of extractUrls(cleanPasteInput(input))) {
+        try {
+          const text = await fetchText(u);
+          const id = extractBvFromText(text);
+          if (id && !id.shortUrl) return id;
+        } catch {}
+      }
+      throw new Error('无法识别 BV 号，请确认粘贴了完整 B 站分享内容');
+    }
+    function getCourseCache(bvid) {
+      const mem = memCache.get(bvid);
+      if (mem && Date.now() - mem.ts < CONFIG.CACHE_TTL) return mem.data;
+      try {
+        const raw = sessionStorage.getItem('bc_' + bvid);
+        if (!raw) return null;
+        const { data, ts } = JSON.parse(raw);
+        if (Date.now() - ts > CONFIG.CACHE_TTL) return null;
+        memCache.set(bvid, { data, ts });
+        return data;
+      } catch { return null; }
+    }
+    function setCourseCache(bvid, data) {
+      const entry = { data, ts: Date.now() };
+      memCache.set(bvid, entry);
+      try { sessionStorage.setItem('bc_' + bvid, JSON.stringify(entry)); } catch {}
+    }
+    async function proxyFetch(url, needJson) {
+      let err;
+      for (const p of CONFIG.PROXIES) {
+        try {
+          const proxyUrl = p.build(url) + (p.build(url).includes('?') ? '&' : '?') + '_nc=' + Date.now();
+          const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(20000) });
+          if (!res.ok) continue;
+          let text = p.wrap ? (await res.json()).contents : await res.text();
+          if (needJson) {
+            text = text.trim();
+            if (!text.startsWith('{')) continue;
+            return JSON.parse(text);
+          }
+          return text;
+        } catch (e) { err = e; }
+      }
+      throw err || new Error('Failed to fetch');
+    }
+    async function fetchText(url) { return proxyFetch(url, false); }
+    async function fetchBiliJson(path) {
+      const apiUrl = `https://api.bilibili.com${path}${path.includes('?') ? '&' : '?'}_nc=${Date.now()}`;
+      const aoGet = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}&_nc=${Date.now()}`;
+      const tries = [
+        async () => {
+          const res = await fetch(aoGet, { signal: AbortSignal.timeout(CONFIG.JSONP_TIMEOUT) });
+          if (!res.ok) throw new Error('fail');
+          return JSON.parse((await res.json()).contents);
+        },
+        () => new Promise((resolve, reject) => {
+          const cb = '_pj_' + Date.now() + Math.random().toString(36).slice(2);
+          const timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, CONFIG.JSONP_TIMEOUT);
+          const script = document.createElement('script');
+          function cleanup() { clearTimeout(timer); delete window[cb]; script.remove(); }
+          window[cb] = (w) => { cleanup(); try { resolve(JSON.parse(w.contents)); } catch(e) { reject(e); } };
+          script.onerror = () => { cleanup(); reject(new Error('fail')); };
+          script.src = aoGet + '&callback=' + cb;
+          document.body.appendChild(script);
+        }),
+        async () => proxyFetch(apiUrl, true)
+      ];
+      try {
+        return await Promise.any(tries.map(fn => fn()));
+      } catch (e) {
+        throw e instanceof AggregateError ? new Error('网络请求失败') : e;
+      }
+    }
+    function validateViewData(data, expectedBvid) {
+      if (!data || !data.bvid) throw new Error('API 返回数据无效');
+      if (expectedBvid && !bvidMatch(data.bvid, expectedBvid)) {
+        throw new Error(`数据不匹配：请求 ${expectedBvid}，返回 ${data.bvid}`);
+      }
+      return data;
+    }
+    async function fetchBiliData(path, expectedBvid) {
+      const json = await fetchBiliJson(path);
+      if (json.code !== 0) throw new Error(json.message || 'API错误');
+      return validateViewData(json.data, expectedBvid);
+    }
+    async function fetchPagelist(bvid) {
+      const json = await fetchBiliJson(`/x/web-interface/pagelist?bvid=${bvid}`);
+      if (json.code !== 0) throw new Error(json.message || '分P列表获取失败');
+      if (!Array.isArray(json.data) || !json.data.length) throw new Error('分P列表为空');
+      return json.data;
+    }
+    async function fetchCourse(videoId, hintTitle) {
+      const requestedBvid = typeof videoId === 'string' ? videoId : null;
+
+      if (requestedBvid) {
+        const cached = getCourseCache(requestedBvid);
+        if (cached) return cached;
+      }
+
+      const viewPath = requestedBvid
+        ? `/x/web-interface/view?bvid=${requestedBvid}`
+        : `/x/web-interface/view?aid=${videoId.aid}`;
+
+      let viewData = null, pages = [];
+
+      if (requestedBvid) {
+        // 并行：pagelist（分P列表）+ view（标题封面），取先返回的，整体更快
+        const [listR, viewR] = await Promise.allSettled([
+          fetchPagelist(requestedBvid),
+          fetchBiliData(viewPath, requestedBvid)
+        ]);
+        if (listR.status === 'fulfilled') pages = listR.value;
+        if (viewR.status === 'fulfilled') {
+          viewData = viewR.value;
+          if (!pages.length) pages = viewData.pages || [];
+        }
+        if (!pages.length) {
+          const err = listR.reason || viewR.reason;
+          throw err || new Error('未找到分P信息');
+        }
+        if (!viewData) {
+          viewData = {
+            bvid: requestedBvid,
+            title: hintTitle || pages[0]?.part || requestedBvid,
+            pic: ''
+          };
+        }
+      } else {
+        viewData = await fetchBiliData(viewPath, null);
+        pages = viewData.pages || [];
+      }
+
+      if (!pages.length) throw new Error('未找到分P信息');
+      const episodes = pages.map((p, i) => ({ index: i, title: p.part || `P${i+1}`, duration: p.duration }));
+      const result = {
+        bvid: viewData.bvid || requestedBvid,
+        title: viewData.title || hintTitle || requestedBvid,
+        cover: viewData.pic || '',
+        totalSeconds: episodes.reduce((s, e) => s + e.duration, 0),
+        episodes
+      };
+      if (result.bvid) setCourseCache(result.bvid, result);
+      return result;
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    }
+
+    // ===== 规划 =====
+    /** 用课程目录原名描述每日看到哪里（不依赖 P 编号） */
+    function getCatalogRange(day) {
+      const parts = day.pList;
+      const first = parts[0], last = parts[parts.length - 1];
+      const start = first.title;
+      const end = last.title;
+
+      if (parts.length === 1) {
+        if (last.partial) {
+          return {
+            main: `看到「${start}」的 ${formatShort(last.duration)}（未看完）`,
+            sub: `目录第 ${first.index + 1} 条 · 共 1 个视频`
+          };
+        }
+        return {
+          main: `学完「${start}」`,
+          sub: `目录第 ${first.index + 1} 条 · 共 1 个视频`
+        };
+      }
+
+      if (last.partial) {
+        const fullEnd = parts.length > 1 ? parts[parts.length - 2].title : null;
+        const main = fullEnd
+          ? `从「${start}」到「${fullEnd}」整集，再看到「${end}」的 ${formatShort(last.duration)}`
+          : `看到「${start}」的 ${formatShort(last.duration)}（未看完）`;
+        return {
+          main,
+          sub: `目录第 ${first.index + 1}–${last.index + 1} 条 · 共 ${parts.length} 个视频`
+        };
+      }
+
+      return {
+        main: `从「${start}」到「${end}」`,
+        sub: `目录第 ${first.index + 1}–${last.index + 1} 条 · 共 ${parts.length} 个视频`
+      };
+    }
+
+    function getDayRecommend(day) {
+      const { main } = getCatalogRange(day);
+      return `📌 今日目标：${main}`;
+    }
+
+    function generatePlan(episodes, dailyMin) {
+      const dailySec = dailyMin * 60, flexSec = Math.floor(dailySec * 0.15);
+      const plan = []; let dayNum = 1, i = 0, offset = 0;
+      while (i < episodes.length) {
+        const parts = []; let used = 0;
+        while (i < episodes.length) {
+          const ep = episodes[i], remain = ep.duration - offset, left = dailySec - used;
+          if (remain <= left) {
+            parts.push({ index: i, title: ep.title, duration: remain, partial: offset > 0, fullEpisode: true, startAt: offset, endAt: ep.duration });
+            used += remain; i++; offset = 0; continue;
+          }
+          if (offset === 0 && remain <= left + flexSec) {
+            parts.push({ index: i, title: ep.title, duration: remain, partial: false, fullEpisode: true, flexFinish: true, startAt: 0, endAt: ep.duration });
+            used += remain; i++; break;
+          }
+          if (left <= 0) break;
+          parts.push({ index: i, title: ep.title, duration: left, partial: true, fullEpisode: false, startAt: offset, endAt: offset + left });
+          offset += left; break;
+        }
+        if (!parts.length) break;
+        const catalog = getCatalogRange({ pList: parts });
+        plan.push({
+          day: dayNum, pList: parts,
+          catalogMain: catalog.main,
+          catalogSub: catalog.sub,
+          totalSec: used
+        });
+        dayNum++;
+      }
+      return plan;
+    }
+
+    function getCurrentDayIdx() {
+      for (let i = 0; i < planData.length; i++)
+        if (!progress.completedDays.includes(planData[i].day)) return i;
+      return planData.length - 1;
+    }
+    function calcStats() {
+      const done = progress.completedDays.length, total = planData.length;
+      const pct = total ? Math.round(done / total * 100) : 0;
+      const doneSec = planData.filter(d => progress.completedDays.includes(d.day)).reduce((s,d)=>s+d.totalSec,0);
+      const totalSec = planData.reduce((s,d)=>s+d.totalSec,0);
+      return { done, total, pct, remain: total - done, doneSec, totalSec };
+    }
+
+    // ===== 渲染 =====
+    function renderAll(dailyMin) {
+      if (!courseData || !planData.length) return;
+      currentDayIdx = getCurrentDayIdx();
+      const stats = calcStats();
+      const cur = planData[currentDayIdx];
+
+      $('heroMini').hidden = true;
+      $('resultsSection').hidden = false;
+
+      $('dashboard').innerHTML = `
+        <div class="dash-top">
+          <img class="dash-cover" src="${courseData.cover}" alt="">
+          <div class="dash-info">
+            <div class="dash-title">${courseData.title}</div>
+            <div class="dash-meta">${formatDuration(courseData.totalSeconds)} · ${courseData.episodes.length}P · 每天${dailyMin}分钟</div>
+          </div>
+        </div>
+        <div class="progress-block">
+          <div class="progress-head"><span>学习进度</span><span>${stats.pct}% · 已完成 ${stats.done}/${stats.total} 天</span></div>
+          <div class="progress-track"><div class="progress-fill" style="width:${stats.pct}%"></div></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-box"><div class="stat-num">${stats.done}</div><div class="stat-label">已完成(天)</div></div>
+          <div class="stat-box"><div class="stat-num">${stats.remain}</div><div class="stat-label">剩余(天)</div></div>
+          <div class="stat-box"><div class="stat-num">${stats.pct}%</div><div class="stat-label">总进度</div></div>
+        </div>`;
+
+      const isDone = progress.completedDays.includes(cur.day);
+      const curCat = getCatalogRange(cur);
+      $('todayFocus').innerHTML = `
+        <div class="today-tag">${isDone ? '✅ 今日已完成 · 明天继续' : '📍 当前学习 · 第 ' + cur.day + ' 天'}</div>
+        <div class="today-range">${esc(cur.catalogMain || curCat.main)}</div>
+        <div class="today-range-sub">${esc(cur.catalogSub || curCat.sub)} · ${formatDuration(cur.totalSec)}</div>
+        <div class="today-tip">${esc(getDayRecommend(cur))}</div>
+        <div class="today-items">${cur.pList.map(p => {
+          const partialNote = p.partial ? ` · 看到 ${formatShort(p.duration)}` : '';
+          return `<div class="today-pill"><span>${esc(p.title)}${partialNote}</span></div>`;
+        }).join('')}
+        </div>
+        <div class="check-row">
+          <button class="check-btn${isDone ? ' done' : ''}" id="todayCheckBtn">${isDone ? '✓ 已完成，点击取消' : '✓ 标记今日学完'}</button>
+        </div>`;
+
+      $('todayCheckBtn').onclick = () => toggleDay(cur.day);
+
+      $('planCountLabel').textContent = `共 ${planData.length} 天`;
+      $('planList').innerHTML = planData.map((d, idx) => {
+        const done = progress.completedDays.includes(d.day);
+        const isCur = idx === currentDayIdx;
+        const cat = getCatalogRange(d);
+        const main = d.catalogMain || cat.main;
+        const sub = d.catalogSub || cat.sub;
+        return `
+          <div class="day-row${done?' completed':''}${isCur?' current':''}" data-day="${d.day}" data-idx="${idx}">
+            <div class="day-check${done?' checked':''}" data-check="${d.day}">${done?'✓':''}</div>
+            <div class="day-row-body">
+              <div class="day-row-title">第 ${d.day} 天${isCur?' · 当前':''} · ${formatDuration(d.totalSec)}</div>
+              <div class="day-row-catalog">${esc(main)}</div>
+              <div class="day-row-sub">${esc(sub)}</div>
+            </div>
+          </div>
+          <div class="day-detail" id="detail-${d.day}">${d.pList.map(p => {
+            const note = p.partial ? `看到 ${formatShort(p.duration)}` : `整集 ${formatShort(p.duration)}`;
+            return `<div class="day-detail-item">「${esc(p.title)}」· ${note}</div>`;
+          }).join('')}</div>`;
+      }).join('');
+
+      $('planList').querySelectorAll('.day-row').forEach(row => {
+        row.addEventListener('click', e => {
+          if (e.target.closest('[data-check]')) {
+            e.stopPropagation();
+            toggleDay(+e.target.closest('[data-check]').dataset.check);
+            return;
+          }
+          const day = row.dataset.day;
+          const det = $('detail-' + day);
+          det.classList.toggle('open');
+        });
+      });
+    }
+
+    function toggleDay(dayNum) {
+      const idx = progress.completedDays.indexOf(dayNum);
+      if (idx >= 0) progress.completedDays.splice(idx, 1);
+      else progress.completedDays.push(dayNum);
+      progress.completedDays.sort((a,b)=>a-b);
+      saveProgress(courseData.bvid, {
+        completedDays: progress.completedDays,
+        title: courseData.title, cover: courseData.cover,
+        totalDays: planData.length, dailyMin: +dailyMinutes.value
+      });
+      renderAll(+dailyMinutes.value);
+      if (idx < 0) showToast('🎉 太棒了！第 ' + dayNum + ' 天已完成');
+    }
+
+    function renderMine() {
+      const all = loadAll();
+      const keys = Object.keys(all).sort((a,b) => (all[b].updatedAt||0) - (all[a].updatedAt||0));
+      if (!keys.length) {
+        $('mineContent').innerHTML = '<div class="mine-empty glass"><div style="font-size:3rem">📭</div><p>还没有学习记录<br>去规划页添加课程吧</p></div>';
+        return;
+      }
+      $('mineContent').innerHTML = '<div class="mine-list">' + keys.map(bvid => {
+        const c = all[bvid];
+        const done = (c.completedDays||[]).length, total = c.totalDays || 1;
+        const pct = Math.round(done / total * 100);
+        return `<div class="mine-card" data-bvid="${bvid}">
+          <img class="mine-cover" src="${c.cover||''}" alt="">
+          <div class="mine-body">
+            <div class="mine-title">${c.title||bvid}</div>
+            <div class="mine-progress">
+              <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+              <div class="mine-progress-text">已完成 ${done}/${total} 天 · 每天${c.dailyMin||45}分钟</div>
+            </div>
+          </div>
+          <div class="mine-pct">${pct}%</div>
+        </div>`;
+      }).join('') + '</div>';
+
+      $('mineContent').querySelectorAll('.mine-card').forEach(card => {
+        card.onclick = () => {
+          switchPage('plan');
+          urlInput.value = 'https://www.bilibili.com/video/' + card.dataset.bvid;
+          startPlanning();
+        };
+      });
+    }
+
+    function switchPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.page === name));
+      $(name === 'plan' ? 'pagePlan' : 'pageMine').classList.add('active');
+      if (name === 'mine') renderMine();
+    }
+
+    // ===== 打卡卡片 =====
+    async function generateCard() {
+      if (!courseData || !planData.length) { showToast('请先完成规划'); return; }
+      if (typeof html2canvas === 'undefined') { showToast('html2canvas 加载失败，请刷新页面'); return; }
+
+      const btn = $('genCardBtn');
+      btn.disabled = true; btn.textContent = '生成中…';
+
+      const stats = calcStats();
+      $('cardCourseName').textContent = courseData.title;
+      $('cardTotalDays').textContent = `共 ${planData.length} 天 · 已完成 ${stats.done} 天`;
+      $('cardProgressFill').style.width = stats.pct + '%';
+      $('cardProgressText').textContent = `学习进度 ${stats.pct}% · 剩余 ${stats.remain} 天`;
+      const now = new Date();
+      $('cardDate').textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+
+      const card = $('checkinCard');
+      card.style.opacity = '1';
+      card.style.zIndex = '-1';
+
+      try {
+        await new Promise(r => setTimeout(r, 100));
+        const canvas = await html2canvas(card, {
+          scale: 2, backgroundColor: '#0B0B0E', useCORS: true, logging: false, allowTaint: true
+        });
+        card.style.opacity = '0';
+        const safeName = courseData.title.replace(/[\\/:*?"<>|]/g,'_').slice(0,30);
+        canvas.toBlob(blob => {
+          if (!blob) { showToast('生成失败，请重试'); return; }
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `打卡-${safeName}.png`;
+          document.body.appendChild(a); a.click(); a.remove();
+          showToast('🎉 打卡卡片已下载！');
+        }, 'image/png');
+      } catch (e) {
+        card.style.opacity = '0';
+        showToast('图片生成失败：' + (e.message || '请重试'));
+      } finally {
+        btn.disabled = false; btn.textContent = '📸 生成打卡卡片';
+      }
+    }
+
+    // ===== 主流程 =====
+    function resetResults() {
+      courseData = null;
+      planData = [];
+      progress = { completedDays: [] };
+      $('resultsSection').hidden = true;
+      $('dashboard').innerHTML = '';
+      $('todayFocus').innerHTML = '';
+      $('planList').innerHTML = '';
+      $('heroMini').hidden = false;
+    }
+
+    async function startPlanning() {
+      if (isLoading) return;
+      const url = urlInput.value.trim();
+      if (!url) { showToast('请输入课程链接'); return; }
+
+      const dailyMin = Math.max(10, Math.min(480, parseInt(dailyMinutes.value) || 45));
+      dailyMinutes.value = dailyMin;
+      const gen = ++fetchGeneration;
+
+      // 立即清空旧数据，防止"牛头不对马嘴"
+      resetResults();
+
+      $('loadingOverlay').classList.add('active');
+      $('startBtn').disabled = true;
+      isLoading = true;
+      startLoadAnim();
+
+      try {
+        setLoadProgress(15, '🐕 正在识别链接…');
+        const parsed = parsePasteInput(url);
+        if (!parsed.videoId) throw new Error('无法识别 BV 号，请确认粘贴了完整 B 站分享内容');
+        let videoId = parsed.videoId;
+        if (videoId.shortUrl) videoId = await resolveVideoId(url);
+        if (gen !== fetchGeneration) return;
+
+        const bvidLabel = typeof videoId === 'string' ? videoId : 'av' + videoId.aid;
+        setLoadProgress(30, '🐕 正在抓取 ' + bvidLabel + ' …');
+
+        if (typeof videoId === 'string' && getCourseCache(videoId)) {
+          setLoadProgress(60, '🐕 命中缓存，飞速加载中…');
+        }
+
+        const data = await fetchCourse(videoId, parsed.hintTitle || lastParsedHint);
+        if (gen !== fetchGeneration) return;
+
+        // 二次校验：返回标题/编号必须与请求一致
+        if (typeof videoId === 'string' && !bvidMatch(data.bvid, videoId)) {
+          throw new Error('课程数据校验失败，请重试');
+        }
+
+        setLoadProgress(75, '🐕 正在生成课表（' + data.episodes.length + 'P）…');
+        courseData = data;
+        planData = generatePlan(courseData.episodes, dailyMin);
+
+        progress = getProgress(courseData.bvid);
+
+        setLoadProgress(95, '🐕 马上就好…');
+        applyPlanResult(dailyMin);
+        showToast('✅ 已加载：' + courseData.title.slice(0, 20) + (courseData.title.length > 20 ? '…' : ''));
+      } catch (e) {
+        if (gen !== fetchGeneration) return;
+        stopLoadAnim(false);
+        $('loadingOverlay').classList.remove('active');
+        resetResults();
+        const msg = e.message || '';
+        showToast(/fetch|网络|超时|不匹配/i.test(msg) ? (msg.includes('不匹配') ? msg : '抓取失败，请确认链接完整后重试') : (msg || '解析失败'));
+      } finally {
+        if (gen === fetchGeneration) {
+          isLoading = false;
+          $('startBtn').disabled = false;
+        }
+      }
+    }
+
+    // ===== 事件 =====
+    document.querySelectorAll('.nav-tab').forEach(t => t.onclick = () => switchPage(t.dataset.page));
+    $('startBtn').onclick = debounce(startPlanning, 300);
+    urlInput.onkeydown = e => { if (e.key === 'Enter') startPlanning(); };
+    urlInput.oninput = () => showParseHint(urlInput.value);
+    urlInput.onpaste = () => setTimeout(() => showParseHint(urlInput.value), 50);
+    $('genCardBtn').onclick = generateCard;
+    $('replanBtn').onclick = replan;
+    $('expiryReplanBtn').onclick = replan;
+    $('donateBtn').onclick = () => { $('donateQr').src = CONFIG.DONATE_QR_URL; $('donateModal').classList.add('active'); };
+    $('modalClose').onclick = () => $('donateModal').classList.remove('active');
+    $('donateModal').onclick = e => { if (e.target === $('donateModal')) $('donateModal').classList.remove('active'); };
+    dailyMinutes.onchange = () => {
+      if (!courseData || isLoading) return;
+      const m = Math.max(10, Math.min(480, parseInt(dailyMinutes.value) || 45));
+      dailyMinutes.value = m;
+      planData = generatePlan(courseData.episodes, m);
+      saveProgress(courseData.bvid, { totalDays: planData.length, dailyMin: m });
+      progress = getProgress(courseData.bvid);
+      savePlanCache(m);
+      updateShareUrl(courseData.bvid, m);
+      renderAll(m);
+    };
+
+    initApp();
+  </script>
+</body>
+</html>

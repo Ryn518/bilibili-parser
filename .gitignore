@@ -1,0 +1,10 @@
+# 本地测试/缓存数据
+p910.json
+*.json.bak
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
