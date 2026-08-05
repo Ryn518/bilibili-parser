@@ -2,6 +2,9 @@
 p910.json
 *.json.bak
 
+# 部署
+.vercel/
+
 # 系统与编辑器
 .DS_Store
 Thumbs.db

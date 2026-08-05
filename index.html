@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0B0B0E">
+  <meta name="theme-color" content="#DCE8F5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="课表规划">
@@ -16,310 +16,586 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0B0B0E; --gold: #C9A96E; --gold-light: #E8D5A8;
-      --gold-dim: rgba(201,169,110,0.15); --glass: rgba(255,255,255,0.05);
-      --border: rgba(255,255,255,0.08); --text: #F5F5F7;
-      --text2: rgba(245,245,247,0.6); --text3: rgba(245,245,247,0.35);
-      --radius: 16px; --radius-sm: 10px; --green: #6BCB77;
+      --bg: #DCE8F5; --surface: #FFFFFF; --surface2: #EDF2FA;
+      --ink: #0F172A; --text: #334155; --text2: #475569; --text3: #64748B;
+      --border: #B8C9DE; --border2: #CBD8EA;
+      --accent: #3B82F6; --accent-light: #DBEAFE; --accent-dim: rgba(59,130,246,0.16);
+      --accent-grad: linear-gradient(135deg, #3B82F6, #2563EB);
+      --accent-deep: #1D4ED8; --accent-text: #1E40AF;
+      --dark: #0F172A; --green: #059669; --green-dim: rgba(5,150,105,0.12);
+      --amber: #D97706;
+      --radius: 14px; --radius-sm: 10px;
+      --shadow: 0 1px 3px rgba(30,64,175,0.1), 0 6px 20px rgba(0,0,0,0.06);
+      --shadow-lg: 0 4px 24px rgba(37,99,235,0.18), 0 12px 40px rgba(0,0,0,0.08);
     }
     html { scroll-behavior: smooth; }
     body {
       font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--bg); color: var(--text);
-      min-height: 100dvh; line-height: 1.6;
+      background: var(--bg); color: var(--ink);
+      min-height: 100dvh; line-height: 1.5; font-size: 14px;
     }
     body::before {
       content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background:
-        radial-gradient(ellipse 90% 60% at 50% -10%, rgba(201,169,110,0.1), transparent 55%),
-        radial-gradient(ellipse 50% 40% at 100% 80%, rgba(201,169,110,0.05), transparent 50%);
+        radial-gradient(ellipse 80% 55% at 50% 0%, rgba(59,130,246,0.16), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 0% 100%, rgba(37,99,235,0.1), transparent 50%),
+        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(37,99,235,0.08), transparent 50%);
     }
 
-    /* 顶栏 */
+    /* 顶栏 SaveAny 风格 */
     .topbar {
       position: sticky; top: 0; z-index: 50;
-      background: rgba(11,11,14,0.85); backdrop-filter: blur(16px);
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border);
     }
     .topbar-inner {
-      max-width: 960px; margin: 0 auto; padding: 14px 20px;
-      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1080px; margin: 0 auto; padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-    .brand { font-weight: 700; font-size: 1rem; color: var(--gold-light); }
-    .nav-tabs { display: flex; gap: 8px; }
+    .brand {
+      font-weight: 700; font-size: 0.95rem; color: var(--ink);
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .brand-icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--accent-grad); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.35);
+    }
+    .brand-tag {
+      font-size: 0.68rem; font-weight: 500; color: var(--text2);
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 999px; margin-left: 2px;
+    }
+    .topbar-nav { display: flex; gap: 4px; }
     .nav-tab {
-      padding: 8px 18px; border-radius: 999px; border: none;
+      padding: 7px 16px; border-radius: 999px; border: none;
       background: transparent; color: var(--text2); font-family: inherit;
-      font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: 0.2s;
+      font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: 0.15s;
     }
-    .nav-tab.active { background: var(--gold-dim); color: var(--gold); }
+    .nav-tab:hover { color: var(--ink); }
+    .nav-tab.active { background: var(--accent-light); color: var(--accent-text); font-weight: 600; }
     .nav-tab .badge {
-      display: inline-block; min-width: 18px; height: 18px; line-height: 18px;
-      background: var(--gold); color: var(--bg); border-radius: 999px;
-      font-size: 0.7rem; font-weight: 700; margin-left: 4px; text-align: center;
+      display: inline-block; min-width: 16px; height: 16px; line-height: 16px;
+      background: var(--accent); color: #fff; border-radius: 999px;
+      font-size: 0.65rem; font-weight: 700; margin-left: 3px; text-align: center;
     }
+    .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .coin-badge {
+      font-size: 0.78rem; font-weight: 600; color: var(--accent-text);
+      background: var(--accent-light); border: 1px solid rgba(59,130,246,0.3);
+      padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+    }
+    .btn-vip {
+      padding: 8px 16px; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      border: none; border-radius: 999px; cursor: pointer;
+      background: var(--accent-grad); color: #fff;
+      box-shadow: 0 2px 10px rgba(59,130,246,0.35); transition: 0.15s;
+    }
+    .btn-vip:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,130,246,0.45); }
 
     .page { display: none; position: relative; z-index: 1; }
     .page.active { display: block; }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 24px 20px 80px; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 64px; }
 
-    .glass {
-      background: var(--glass); backdrop-filter: blur(20px);
-      border: 1px solid var(--border); border-radius: var(--radius);
+    /* 落地页 Hero（SaveAny 风格） */
+    .landing-hero {
+      text-align: center; padding: 48px 0 32px; max-width: 760px; margin: 0 auto;
     }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 500;
+      color: var(--text2); background: var(--surface); border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .status-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 0 3px var(--green-dim);
+    }
+    .landing-hero h1 {
+      font-size: clamp(1.75rem, 5vw, 2.75rem); font-weight: 800;
+      color: var(--ink); letter-spacing: -0.03em; line-height: 1.25;
+      margin-bottom: 14px;
+    }
+    .landing-hero h1 .hl { color: var(--accent-text); }
+    .landing-sub {
+      font-size: clamp(0.88rem, 2vw, 1rem); color: var(--text2);
+      line-height: 1.65; max-width: 560px; margin: 0 auto 28px;
+    }
+    .search-pill {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 6px 6px 14px;
+      box-shadow: var(--shadow-lg); margin-bottom: 10px;
+    }
+    .search-pill .search-icon { font-size: 1rem; color: var(--text3); flex-shrink: 0; padding-left: 4px; }
+    .search-pill .url-input {
+      flex: 1; border: none; background: transparent; padding: 12px 8px;
+      font-size: 0.92rem; min-width: 0;
+    }
+    .search-pill .url-input:focus { box-shadow: none; border: none; outline: none; }
+    .search-btn {
+      flex-shrink: 0; padding: 11px 22px; border: none; border-radius: 999px;
+      background: var(--accent-grad); color: #fff; font-family: inherit;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 2px 10px rgba(59,130,246,0.35); transition: 0.15s;
+      min-height: 42px; white-space: nowrap;
+    }
+    .search-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(59,130,246,0.45); }
+    .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .landing-hero .parse-hint { text-align: left; padding-left: 16px; margin-bottom: 8px; }
+    .landing-options {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.85rem; color: var(--text2); margin-bottom: 20px;
+    }
+    .landing-options .num-input { max-width: 64px; text-align: center; padding: 7px; border-radius: 8px; }
+    .quick-links {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+      gap: 6px 12px; font-size: 0.8rem; color: var(--text3);
+    }
+    .quick-links button {
+      background: none; border: none; font-family: inherit;
+      font-size: 0.8rem; color: var(--accent-text); cursor: pointer;
+      font-weight: 500; padding: 2px 4px; transition: 0.15s;
+    }
+    .quick-links button:hover { color: var(--accent-deep); text-decoration: underline; }
+
+    /* 继续上次规划提示条 */
+    .continue-banner {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
+      margin-bottom: 20px; padding: 10px 16px; border-radius: var(--radius-sm);
+      background: var(--accent-light); border: 1px solid rgba(59,130,246,0.25);
+      font-size: 0.82rem; color: var(--text);
+    }
+    .continue-banner strong { color: var(--accent-text); font-weight: 600; }
+    .continue-banner .btn-continue {
+      padding: 6px 14px; font-family: inherit; font-size: 0.78rem; font-weight: 600;
+      border: none; border-radius: 999px; cursor: pointer;
+      background: var(--accent-grad); color: #fff;
+    }
+    .continue-banner .btn-dismiss {
+      padding: 6px 10px; font-family: inherit; font-size: 0.78rem;
+      border: none; background: transparent; color: var(--text3); cursor: pointer;
+    }
+    .continue-banner .btn-dismiss:hover { color: var(--text2); }
+    .continue-banner[hidden] { display: none !important; }
+
+    .hero-mini { text-align: center; padding: 20px 0 16px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .hero-mini h1 {
+      font-size: clamp(1.35rem, 3.5vw, 1.75rem); font-weight: 700;
+      color: var(--ink); letter-spacing: -0.02em;
+    }
+    .hero-mini p { color: var(--text2); font-size: 0.85rem; margin-top: 6px; }
+    .trust-row {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px;
+    }
+    .trust-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 500;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    }
+    .trust-badge .ico { font-size: 0.85rem; }
 
     /* 输入区 */
-    .hero-mini { text-align: center; padding: 32px 0 24px; }
-    .hero-mini h1 {
-      font-size: clamp(1.4rem, 4vw, 1.85rem); font-weight: 700;
-      background: linear-gradient(135deg, var(--text), var(--gold-light));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .hero-mini p { color: var(--text2); font-size: 0.9rem; margin-top: 8px; }
-    .input-card { padding: 24px; margin-bottom: 24px; }
-    .input-label { font-size: 0.8rem; color: var(--text2); margin-bottom: 10px; display: block; }
-    .input-row { display: flex; flex-direction: column; gap: 12px; }
+    .input-card { padding: 16px 18px; margin-bottom: 14px; }
+    .input-card.compact { margin-bottom: 0; border: none; box-shadow: none; padding: 0; background: transparent; }
+    .input-label { font-size: 0.75rem; font-weight: 600; color: var(--text2); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.04em; }
+    .input-row { display: flex; flex-direction: column; gap: 10px; }
     .url-input, .num-input {
-      width: 100%; padding: 14px 16px; font-size: 1rem; font-family: inherit;
-      color: var(--text); background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none;
+      width: 100%; padding: 11px 14px; font-size: 0.9rem; font-family: inherit;
+      color: var(--ink); background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; transition: 0.15s;
     }
-    .url-input:focus, .num-input:focus { border-color: rgba(201,169,110,0.5); box-shadow: 0 0 0 3px var(--gold-dim); }
-    .daily-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); }
-    .parse-hint { font-size: 0.78rem; color: var(--gold); margin-top: 10px; line-height: 1.4; }
-    .num-input { max-width: 90px; text-align: center; padding: 10px; }
+    .url-input:focus, .num-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .daily-row {
+      display: flex; align-items: center; gap: 8px; margin-top: 12px;
+      font-size: 0.85rem; color: var(--text2);
+    }
+    .parse-hint { font-size: 0.76rem; color: var(--accent-text); margin-top: 8px; line-height: 1.4; font-weight: 500; }
+    .num-input { max-width: 72px; text-align: center; padding: 8px; }
     .btn {
-      padding: 14px 24px; font-family: inherit; font-weight: 600; font-size: 0.95rem;
+      padding: 11px 20px; font-family: inherit; font-weight: 600; font-size: 0.88rem;
       border-radius: var(--radius-sm); cursor: pointer; border: none; transition: 0.15s;
-      touch-action: manipulation; min-height: 48px;
+      touch-action: manipulation; min-height: 42px;
     }
-    .btn-gold { background: linear-gradient(135deg, var(--gold), #B8924A); color: var(--bg); width: 100%; }
-    .btn-gold:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,169,110,0.3); }
-    .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-outline { background: transparent; border: 1px solid rgba(201,169,110,0.4); color: var(--gold); }
-    .btn-outline:hover { background: var(--gold-dim); }
+    .btn-primary {
+      background: var(--accent-grad); color: #fff; width: 100%;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.28);
+    }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(59,130,246,0.38); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-gold { background: var(--accent-grad); color: #fff; }
+    .btn-outline {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .btn-accent {
+      background: var(--accent-grad); color: #fff;
+      box-shadow: 0 2px 10px rgba(59,130,246,0.25);
+    }
+    .btn-accent:hover { transform: translateY(-1px); }
+
+    /* 结果双栏 */
+    .result-grid {
+      display: grid; grid-template-columns: 1fr; gap: 14px;
+    }
+    @media (min-width: 768px) {
+      .result-grid { grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+    }
+    .result-side { display: flex; flex-direction: column; gap: 12px; }
+    .course-preview {
+      border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .preview-media { position: relative; }
+    .preview-cover {
+      width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block;
+    }
+    .preview-cover-placeholder {
+      width: 100%; aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #DBEAFE, #BFDBFE); font-size: 2.5rem;
+    }
+    .preview-play {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.15); pointer-events: none;
+    }
+    .preview-play span {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--accent-grad); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; box-shadow: 0 4px 16px rgba(59,130,246,0.35);
+    }
+    .preview-info { padding: 12px 14px; }
+    .preview-title { font-size: 0.88rem; font-weight: 600; line-height: 1.4; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .preview-meta { font-size: 0.75rem; color: var(--text2); margin-top: 6px; }
+    .preview-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .preview-tag {
+      font-size: 0.68rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      background: var(--accent-light); color: var(--accent);
+    }
+    .preview-tag.alt { background: rgba(29,78,216,0.12); color: var(--accent-deep); }
+    .side-tip { font-size: 0.72rem; color: var(--text3); line-height: 1.45; padding: 0 2px; }
+
+    .result-main { min-width: 0; }
+    .result-tabs {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
+      padding: 4px; background: var(--surface2); border-radius: 999px; border: 1px solid var(--border);
+    }
+    .result-tab {
+      padding: 7px 14px; border-radius: 999px; border: none; background: transparent;
+      font-family: inherit; font-size: 0.8rem; font-weight: 500; color: var(--text2);
+      cursor: pointer; transition: 0.15s; white-space: nowrap;
+    }
+    .result-tab.active {
+      background: var(--surface); color: var(--ink);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .result-tab .spark { color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .tab-panel-inner { padding: 16px; }
 
     /* 进度仪表盘 */
-    .dashboard { padding: 28px; margin-bottom: 20px; }
-    .dash-top { display: flex; gap: 20px; align-items: center; margin-bottom: 24px; }
-    .dash-cover {
-      width: 100px; height: 62px; border-radius: 10px; object-fit: cover;
-      border: 1px solid var(--border); flex-shrink: 0;
-    }
-    .dash-info { flex: 1; min-width: 0; }
-    .dash-title { font-size: 1.05rem; font-weight: 600; line-height: 1.4; margin-bottom: 6px; }
-    .dash-meta { font-size: 0.82rem; color: var(--gold); }
-    .progress-block { margin-bottom: 16px; }
-    .progress-head { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 8px; }
-    .progress-head span:first-child { color: var(--text2); }
-    .progress-head span:last-child { color: var(--gold); font-weight: 600; }
+    .dashboard { padding: 0; }
+    .dash-top { display: none; }
+    .progress-block { margin-bottom: 14px; }
+    .progress-head { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 6px; }
+    .progress-head span:first-child { color: var(--text2); font-weight: 500; }
+    .progress-head span:last-child { color: var(--accent); font-weight: 600; }
     .progress-track {
-      height: 10px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;
+      height: 8px; background: var(--border2); border-radius: 999px; overflow: hidden;
     }
     .progress-fill {
       height: 100%; border-radius: 999px;
-      background: linear-gradient(90deg, #B8924A, var(--gold), var(--gold-light));
+      background: var(--accent-grad);
       transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
     }
-    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .stat-box {
-      text-align: center; padding: 14px 8px;
-      background: rgba(255,255,255,0.03); border-radius: var(--radius-sm);
-      border: 1px solid rgba(255,255,255,0.05);
+      text-align: center; padding: 12px 6px;
+      background: var(--surface2); border-radius: var(--radius-sm);
+      border: 1px solid var(--border2);
     }
-    .stat-num { font-size: 1.4rem; font-weight: 700; color: var(--gold-light); }
-    .stat-label { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+    .stat-num { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+    .stat-label { font-size: 0.68rem; color: var(--text3); margin-top: 2px; }
 
     /* 今日焦点 */
-    .today-focus {
-      padding: 24px; margin-bottom: 20px;
-      background: linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.04));
-      border: 1px solid rgba(201,169,110,0.3); border-radius: var(--radius);
+    .today-focus { padding: 0; background: none; border: none; }
+    .today-tag {
+      font-size: 0.72rem; color: var(--accent); font-weight: 700;
+      letter-spacing: 0.06em; margin-bottom: 8px; text-transform: uppercase;
     }
-    .today-tag { font-size: 0.72rem; color: var(--gold); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 8px; }
-    .today-range { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; line-height: 1.5; word-break: break-word; }
-    .today-range-sub { font-size: 0.78rem; color: var(--text3); font-weight: 400; margin-bottom: 8px; }
-    .today-tip { font-size: 0.85rem; color: var(--text2); line-height: 1.55; margin-bottom: 16px; }
-    .today-items { display: flex; flex-direction: column; gap: 8px; }
+    .today-range { font-size: 1rem; font-weight: 700; margin-bottom: 6px; line-height: 1.45; word-break: break-word; color: var(--ink); }
+    .today-range-sub { font-size: 0.76rem; color: var(--text2); margin-bottom: 10px; }
+    .today-tip {
+      font-size: 0.82rem; color: var(--text); line-height: 1.5; margin-bottom: 12px;
+      padding: 10px 12px; background: var(--accent-light); border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+    }
+    .today-items { display: flex; flex-direction: column; gap: 6px; }
     .today-pill {
-      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-      background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); font-size: 0.85rem;
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--text);
     }
-    .today-pill .pnum {
-      background: var(--gold-dim); color: var(--gold); font-weight: 700;
-      padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; flex-shrink: 0;
-    }
-    .check-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .check-row { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border2); }
     .check-btn {
-      flex: 1; padding: 12px; border-radius: var(--radius-sm); border: none;
-      font-family: inherit; font-weight: 600; font-size: 0.9rem; cursor: pointer;
-      background: linear-gradient(135deg, var(--green), #4CAF50); color: #fff;
-      transition: 0.2s;
+      width: 100%; padding: 11px; border-radius: var(--radius-sm); border: none;
+      font-family: inherit; font-weight: 600; font-size: 0.88rem; cursor: pointer;
+      background: var(--green); color: #fff; transition: 0.15s;
     }
-    .check-btn.done { background: rgba(255,255,255,0.08); color: var(--text2); }
-    .check-btn:hover { opacity: 0.9; }
+    .check-btn.done { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+    .check-btn:hover { opacity: 0.92; }
 
     /* 日程列表 */
     .section-head {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 10px; padding: 0 2px;
     }
-    .section-head h3 { font-size: 0.95rem; font-weight: 600; }
-    .section-head span { font-size: 0.8rem; color: var(--text3); }
-    .day-grid { display: flex; flex-direction: column; gap: 10px; }
+    .section-head h3 { font-size: 0.88rem; font-weight: 600; color: var(--ink); }
+    .section-head span { font-size: 0.75rem; color: var(--text3); }
+    .day-grid { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+    .day-grid::-webkit-scrollbar { width: 4px; }
+    .day-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
     .day-row {
-      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: var(--radius-sm); cursor: pointer; transition: 0.2s;
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); cursor: pointer; transition: 0.15s;
     }
-    .day-row:hover { border-color: rgba(201,169,110,0.25); }
-    .day-row.current { border-color: rgba(201,169,110,0.45); background: rgba(201,169,110,0.06); }
-    .day-row.completed { opacity: 0.55; }
-    .day-row.completed .day-check { background: var(--green); border-color: var(--green); }
+    .day-row:hover { border-color: var(--accent); background: var(--accent-light); }
+    .day-row.current { border-color: var(--accent); background: var(--accent-light); }
+    .day-row.completed { opacity: 0.6; }
     .day-check {
-      width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
-      border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
-      font-size: 0.75rem; transition: 0.2s;
+      width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+      border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; transition: 0.15s; background: var(--surface);
     }
     .day-check.checked { background: var(--green); border-color: var(--green); color: #fff; }
     .day-row-body { flex: 1; min-width: 0; }
-    .day-row-title { font-size: 0.88rem; font-weight: 600; line-height: 1.45; word-break: break-word; }
-    .day-row-catalog { font-size: 0.82rem; color: var(--gold-light); margin-top: 4px; line-height: 1.45; word-break: break-word; }
-    .day-row-sub { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
-    .day-row-time { font-size: 0.78rem; color: var(--text2); flex-shrink: 0; }
+    .day-row-title { font-size: 0.82rem; font-weight: 600; line-height: 1.4; color: var(--ink); }
+    .day-row-catalog { font-size: 0.78rem; color: var(--accent); margin-top: 3px; line-height: 1.4; word-break: break-word; }
+    .day-row-sub { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
     .day-detail {
-      display: none; padding: 0 16px 14px 50px;
-      background: rgba(255,255,255,0.02); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-      margin-top: -6px; border: 1px solid rgba(255,255,255,0.04); border-top: none;
+      display: none; padding: 0 12px 10px 42px;
+      background: var(--surface2); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      margin-top: -4px; border: 1px solid var(--border2); border-top: none;
     }
     .day-detail.open { display: block; }
-    .day-detail-item { font-size: 0.8rem; color: var(--text2); padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .day-detail-item { font-size: 0.76rem; color: var(--text2); padding: 5px 0; border-bottom: 1px solid var(--border2); }
     .day-detail-item:last-child { border-bottom: none; }
 
-    .actions-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
-    .actions-row .btn { flex: 1; min-width: 140px; }
+    .actions-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .actions-row .btn { flex: 1; min-width: 120px; font-size: 0.82rem; min-height: 38px; padding: 9px 14px; }
+
+    /* 会员引导 */
+    .support-banner {
+      margin-top: 14px; padding: 14px 16px; border-radius: var(--radius);
+      background: linear-gradient(135deg, #DBEAFE, #FFFFFF);
+      border: 1px solid rgba(59,130,246,0.28);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;
+    }
+    .support-banner p { font-size: 0.82rem; color: var(--text); flex: 1; min-width: 180px; line-height: 1.45; }
+    .support-banner strong { color: var(--accent-text); }
+    .support-banner .btn-accent { flex-shrink: 0; min-width: 110px; font-size: 0.82rem; min-height: 36px; padding: 8px 16px; }
 
     /* 过期提示 */
     .expiry-banner {
-      padding: 16px 18px; margin-bottom: 20px; border-radius: var(--radius-sm);
-      background: rgba(232, 184, 109, 0.12); border: 1px solid rgba(232, 184, 109, 0.45);
-      display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;
+      padding: 12px 14px; margin-bottom: 12px; border-radius: var(--radius-sm);
+      background: #FFFBEB; border: 1px solid #FDE68A;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between;
     }
-    .expiry-banner p { font-size: 0.88rem; color: var(--text2); flex: 1; min-width: 200px; }
-    .expiry-banner .btn { flex: 0 0 auto; min-width: 120px; width: auto; }
+    .expiry-banner p { font-size: 0.82rem; color: #92400E; flex: 1; min-width: 180px; }
+    .expiry-banner .btn { flex: 0 0 auto; min-width: 100px; width: auto; font-size: 0.82rem; min-height: 36px; }
 
-    /* PWA 引导 */
+    /* PWA */
     .pwa-banner {
-      position: fixed; bottom: 20px; right: 20px; left: 20px; max-width: 360px; margin-left: auto;
-      z-index: 120; padding: 14px 16px; border-radius: var(--radius-sm);
-      background: rgba(20, 20, 24, 0.95); backdrop-filter: blur(12px);
-      border: 1px solid rgba(201, 169, 110, 0.35);
-      display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      position: fixed; bottom: 16px; right: 16px; left: 16px; max-width: 340px; margin-left: auto;
+      z-index: 120; padding: 12px 14px; border-radius: var(--radius-sm);
+      background: var(--surface); border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg);
     }
-    .pwa-banner p { flex: 1; font-size: 0.85rem; color: var(--text2); }
-    .pwa-close {
-      background: transparent; border: none; color: var(--text3); font-size: 1.2rem;
-      cursor: pointer; padding: 4px 8px; line-height: 1;
-    }
+    .pwa-banner p { flex: 1; font-size: 0.82rem; color: var(--text); }
+    .pwa-close { background: transparent; border: none; color: var(--text3); font-size: 1.1rem; cursor: pointer; padding: 4px; }
 
     /* 我的 */
-    .mine-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
-    .mine-empty p { margin-top: 12px; font-size: 0.9rem; }
-    .mine-list { display: flex; flex-direction: column; gap: 14px; }
+    .mine-empty { text-align: center; padding: 48px 20px; color: var(--text3); }
+    .mine-empty p { margin-top: 10px; font-size: 0.85rem; }
+    .mine-list { display: flex; flex-direction: column; gap: 10px; }
     .mine-card {
-      display: flex; gap: 16px; padding: 18px; align-items: center;
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: var(--radius); cursor: pointer; transition: 0.2s;
+      display: flex; gap: 12px; padding: 14px; align-items: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); cursor: pointer; transition: 0.15s; box-shadow: var(--shadow);
     }
-    .mine-card:hover { border-color: rgba(201,169,110,0.35); transform: translateY(-1px); }
-    .mine-cover { width: 80px; height: 50px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .mine-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .mine-cover { width: 72px; height: 45px; border-radius: 8px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); }
     .mine-body { flex: 1; min-width: 0; }
-    .mine-title { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mine-progress { margin-top: 8px; }
-    .mine-progress-text { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
-    .mine-pct { font-size: 1.1rem; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+    .mine-title { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+    .mine-progress { margin-top: 6px; }
+    .mine-progress-text { font-size: 0.72rem; color: var(--text3); margin-top: 3px; }
+    .mine-pct { font-size: 1rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
 
-    /* 加载：小狗进度条 */
+    /* 加载 */
     .loading-overlay {
       display: none; position: fixed; inset: 0; z-index: 200;
-      background: rgba(11,11,14,0.88); backdrop-filter: blur(8px);
-      flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      background: rgba(255,255,255,0.85); backdrop-filter: blur(6px);
+      flex-direction: column; align-items: center; justify-content: center; gap: 16px;
     }
     .loading-overlay.active { display: flex; }
-    .load-box { width: min(320px, 85vw); text-align: center; }
-    .load-text { font-size: 0.9rem; color: var(--text2); margin-bottom: 16px; }
+    .load-box { width: min(300px, 85vw); text-align: center; }
+    .load-text { font-size: 0.85rem; color: var(--text2); margin-bottom: 14px; }
     .load-track {
-      position: relative; height: 8px; background: rgba(255,255,255,0.08);
+      position: relative; height: 6px; background: var(--border2);
       border-radius: 999px; overflow: visible;
     }
     .load-bar {
       height: 100%; width: 0%; border-radius: 999px;
-      background: linear-gradient(90deg, var(--gold), var(--gold-light));
-      transition: width 0.3s ease;
+      background: var(--accent-grad); transition: width 0.3s ease;
     }
     .load-dog {
-      position: absolute; top: -28px; left: 0%; transform: translateX(-50%);
-      font-size: 1.6rem; transition: left 0.3s ease;
+      position: absolute; top: -26px; left: 0%; transform: translateX(-50%);
+      font-size: 1.4rem; transition: left 0.3s ease;
       animation: dogBounce 0.4s ease-in-out infinite alternate;
     }
     @keyframes dogBounce { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-4px); } }
-    .load-pct { font-size: 0.8rem; color: var(--gold); margin-top: 12px; font-weight: 600; }
+    .load-pct { font-size: 0.78rem; color: var(--accent); margin-top: 10px; font-weight: 600; }
 
     .toast {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
-      background: rgba(201,169,110,0.95); color: var(--bg);
-      padding: 12px 24px; border-radius: 999px; font-size: 0.88rem; font-weight: 600;
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+      background: var(--dark); color: #fff;
+      padding: 10px 20px; border-radius: 999px; font-size: 0.84rem; font-weight: 500;
       z-index: 300; opacity: 0; transition: 0.3s; pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
     .modal-overlay {
       display: none; position: fixed; inset: 0; z-index: 150;
-      background: rgba(0,0,0,0.65); backdrop-filter: blur(8px);
+      background: rgba(17,24,39,0.4); backdrop-filter: blur(4px);
       align-items: center; justify-content: center; padding: 20px;
     }
     .modal-overlay.active { display: flex; }
     .modal {
-      background: #141418; border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 28px; max-width: 360px; width: 100%; text-align: center;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 28px 24px; max-width: 340px; width: 100%; text-align: center;
+      box-shadow: var(--shadow-lg);
     }
-    .modal h3 { margin-bottom: 8px; }
-    .modal p { font-size: 0.85rem; color: var(--text2); margin-bottom: 20px; }
-    .modal-qr { width: 180px; height: 180px; border-radius: 10px; border: 1px solid var(--border); }
+    .modal h3 { margin-bottom: 6px; font-size: 1.1rem; color: var(--ink); }
+    .modal p { font-size: 0.82rem; color: var(--text2); margin-bottom: 18px; }
+    .modal-qr { width: 168px; height: 168px; border-radius: 10px; border: 1px solid var(--border); }
     .modal-close {
-      margin-top: 16px; padding: 10px 28px; font-family: inherit;
-      background: transparent; border: 1px solid var(--border); color: var(--text2);
-      border-radius: 999px; cursor: pointer;
+      margin-top: 14px; padding: 9px 24px; font-family: inherit;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 999px; cursor: pointer; font-size: 0.85rem;
     }
 
-    /* 打卡卡片 */
+    /* 打卡卡片（导出仍用深色，分享更醒目） */
     #checkinCard {
       position: fixed; left: 0; top: 0; opacity: 0; pointer-events: none; z-index: -9999;
       width: 600px; padding: 48px 40px;
-      background: linear-gradient(160deg, #0B0B0E, #1A1A2E);
-      font-family: 'Inter', sans-serif; color: #F5F5F7;
+      background: linear-gradient(160deg, #111827, #1F2937);
+      font-family: 'Inter', sans-serif; color: #F9FAFB;
     }
-    .card-deco { width: 60px; height: 3px; background: linear-gradient(90deg, #C9A96E, transparent); margin-bottom: 20px; }
+    .card-deco { width: 60px; height: 3px; background: var(--accent-grad); margin-bottom: 20px; border-radius: 2px; }
     .card-title { font-size: 26px; font-weight: 700; line-height: 1.4; margin-bottom: 10px; }
-    .card-subtitle { font-size: 15px; color: #C9A96E; margin-bottom: 20px; }
+    .modal-vip .coin-balance {
+      font-size: 0.9rem; color: var(--text); margin-bottom: 16px;
+      padding: 12px; background: var(--accent-light); border-radius: var(--radius-sm);
+    }
+    .modal-vip .coin-balance strong { font-size: 1.4rem; color: var(--accent-text); }
+    .vip-perks {
+      text-align: left; list-style: none; margin-bottom: 18px;
+      font-size: 0.82rem; color: var(--text2); line-height: 1.8;
+    }
+    .vip-perks li::before { content: '✓ '; color: var(--accent-text); font-weight: 700; }
+    .card-subtitle { font-size: 15px; color: #60A5FA; margin-bottom: 20px; }
     .card-progress-wrap { margin-bottom: 24px; }
     .card-progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
-    .card-progress-fill { height: 100%; background: #C9A96E; border-radius: 999px; }
-    .card-progress-text { font-size: 13px; color: rgba(245,245,247,0.5); margin-top: 8px; }
-    .card-date { font-size: 13px; color: rgba(245,245,247,0.4); margin-bottom: 16px; }
-    .card-footer { font-size: 11px; color: rgba(245,245,247,0.25); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px; }
+    .card-progress-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; }
+    .card-progress-text { font-size: 13px; color: rgba(249,250,251,0.5); margin-top: 8px; }
+    .card-date { font-size: 13px; color: rgba(249,250,251,0.4); margin-bottom: 16px; }
+    .card-footer { font-size: 11px; color: rgba(249,250,251,0.25); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px; }
 
-    .footer { text-align: center; padding: 32px 20px; }
-    .about { font-size: 0.72rem; color: var(--text3); margin-top: 16px; }
+    .footer { text-align: center; padding: 20px 16px; }
+    .about { font-size: 0.72rem; color: var(--text3); margin-top: 10px; }
+
+    /* 反馈悬浮按钮 */
+    .feedback-fab {
+      position: fixed; right: 22px; bottom: 22px; z-index: 130;
+      width: 52px; height: 52px; border-radius: 50%; border: none;
+      background: linear-gradient(135deg, #D97706, #B45309);
+      color: #fff; font-size: 1.35rem; cursor: pointer;
+      box-shadow: 0 4px 18px rgba(217,119,6,0.45);
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .feedback-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(217,119,6,0.55); }
+    .feedback-modal { max-width: 400px; text-align: left; }
+    .feedback-modal h3 { text-align: center; margin-bottom: 4px; }
+    .feedback-modal .modal-desc { text-align: center; font-size: 0.8rem; color: var(--text2); margin-bottom: 16px; }
+    .feedback-field { margin-bottom: 14px; }
+    .feedback-field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+    .feedback-field textarea,
+    .feedback-field input {
+      width: 100%; padding: 10px 12px; font-family: inherit; font-size: 0.88rem;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface2); color: var(--ink); outline: none; resize: vertical;
+    }
+    .feedback-field textarea { min-height: 100px; }
+    .feedback-field textarea:focus,
+    .feedback-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .feedback-actions { display: flex; gap: 10px; margin-top: 6px; }
+    .feedback-actions .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
+    .feedback-actions .btn-cancel {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+      border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-weight: 500;
+    }
+
+    /* 本地服务提示（file:// 直接打开时） */
+    .local-server-banner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      background: linear-gradient(135deg, #FEF3C7, #FFFBEB);
+      border-bottom: 2px solid #F59E0B;
+      padding: 12px 16px; text-align: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .local-server-banner[hidden] { display: none !important; }
+    .local-server-banner p { font-size: 0.85rem; color: #92400E; line-height: 1.5; margin-bottom: 8px; }
+    .local-server-banner strong { color: #B45309; }
+    .local-server-banner button {
+      padding: 6px 16px; font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      border: none; border-radius: 999px; cursor: pointer;
+      background: var(--accent-grad); color: #fff;
+    }
+    body.has-local-banner .topbar { top: 72px; }
+    body.has-local-banner .local-server-banner { display: block; }
 
     @media (min-width: 560px) {
       .input-row { flex-direction: row; }
       .url-input { flex: 1; }
-      .btn-gold { width: auto; min-width: 130px; }
+      .btn-primary, .btn-gold { width: auto; min-width: 120px; }
+    }
+    @media (max-width: 640px) {
+      .topbar-inner { flex-wrap: wrap; padding: 10px 14px; }
+      .topbar-nav { order: 3; width: 100%; justify-content: center; }
+      .coin-badge { display: none; }
+      .search-pill { flex-wrap: wrap; border-radius: var(--radius); padding: 10px; }
+      .search-pill .url-input { width: 100%; padding: 10px 8px; }
+      .search-btn { width: 100%; border-radius: var(--radius-sm); }
+      .landing-hero { padding: 32px 0 24px; }
     }
   </style>
 </head>
 <body>
+  <div class="local-server-banner" id="localServerBanner" hidden>
+    <p>⚠️ 直接打开 HTML 文件无法抓取课程。<br>请双击项目里的 <strong>启动.bat</strong>（会自动打开浏览器），或先运行 <strong>npm start</strong></p>
+    <button type="button" id="localServerRetry">我已启动，重试连接</button>
+  </div>
+
   <div class="loading-overlay" id="loadingOverlay">
     <div class="load-box">
       <p class="load-text" id="loadText">小狗正在帮你拉课程数据…</p>
@@ -339,71 +615,167 @@
     <button type="button" class="pwa-close" id="pwaClose" aria-label="关闭">×</button>
   </div>
 
-  <div class="modal-overlay" id="donateModal">
-    <div class="modal">
-      <h3>请我喝杯咖啡 ☕</h3>
-      <p>你的支持是我更新的动力</p>
-      <img class="modal-qr" id="donateQr" src="" alt="微信赞赏码">
+  <div class="modal-overlay" id="vipModal">
+    <div class="modal modal-vip">
+      <h3>⭐ 升级会员</h3>
+      <p>充值自律币，解锁更多学习规划能力</p>
+      <div class="coin-balance">当前余额：<strong id="coinBalance">5</strong> 自律币</div>
+      <ul class="vip-perks">
+        <li>无限次课程规划（免费用户同样可用）</li>
+        <li>高清打卡卡片模板</li>
+        <li>多课程同步管理</li>
+        <li>优先体验新功能</li>
+      </ul>
+      <img class="modal-qr" id="vipQr" src="" alt="充值二维码">
+      <p style="font-size:0.75rem;color:var(--text3);margin-top:12px">扫码充值自律币 · 支持微信</p>
       <br><button class="modal-close" id="modalClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 用户反馈 -->
+  <button type="button" id="feedbackFab" class="feedback-fab" title="反馈建议">💬</button>
+  <div class="modal-overlay" id="feedbackModal">
+    <div class="modal feedback-modal">
+      <h3>反馈建议</h3>
+      <p class="modal-desc">遇到问题或有改进想法？告诉我吧</p>
+      <form id="feedbackForm">
+        <div class="feedback-field">
+          <label for="feedbackMessage">问题描述 / 建议</label>
+          <textarea id="feedbackMessage" name="message" required
+            placeholder="请描述你遇到的问题或建议..."></textarea>
+        </div>
+        <div class="feedback-field">
+          <label for="feedbackContact">联系方式（选填）</label>
+          <input type="text" id="feedbackContact" name="contact"
+            placeholder="你的联系方式（选填，方便我联系你）">
+        </div>
+        <div class="feedback-actions">
+          <button type="button" class="btn-cancel" id="feedbackCancel">取消</button>
+          <button type="submit" class="btn btn-accent" id="feedbackSubmit">发送反馈</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <header class="topbar">
     <div class="topbar-inner">
-      <span class="brand">📚 B站课表规划器</span>
-      <nav class="nav-tabs">
-        <button class="nav-tab active" data-page="plan">规划</button>
+      <span class="brand">
+        <span class="brand-icon">📚</span>
+        B站课表规划器
+        <span class="brand-tag">智能规划</span>
+      </span>
+      <nav class="topbar-nav">
+        <button class="nav-tab active" data-page="plan">功能</button>
         <button class="nav-tab" data-page="mine">我的<span class="badge" id="mineBadge" hidden>0</span></button>
       </nav>
+      <div class="topbar-right">
+        <span class="coin-badge" id="coinBadge">🪙 5 自律币</span>
+        <button type="button" id="vipBtnTop" class="btn-vip">⭐ 升级会员</button>
+      </div>
     </div>
   </header>
 
   <!-- 规划页 -->
   <div class="page active" id="pagePlan">
     <div class="wrap">
-      <div class="hero-mini" id="heroMini">
-        <h1>智能课表，轻松学完</h1>
-        <p>粘贴 B 站课程链接，自动生成每日计划并追踪进度</p>
-      </div>
+      <section class="landing-hero" id="landingHero">
+        <div class="status-badge"><span class="dot"></span> 支持 B 站全站课程，免费开始使用</div>
+        <h1>万能课表规划器，<span class="hl">一键生成</span></h1>
+        <p class="landing-sub">粘贴 B 站课程链接，智能解析分 P 时长，按每日学习量自动切分日程<br>支持 bilibili.com · b23.tv 分享文字</p>
 
-      <section class="input-card glass" id="inputSection">
-        <label class="input-label" for="urlInput">B站课程链接</label>
-        <div class="input-row">
+        <div class="continue-banner" id="continueBanner" hidden>
+          <span>📂 上次规划：<strong id="continueTitle"></strong></span>
+          <button type="button" id="continueBtn" class="btn-continue">继续学习</button>
+          <button type="button" id="continueDismiss" class="btn-dismiss">忽略</button>
+        </div>
+
+        <div class="search-pill">
+          <span class="search-icon">🔗</span>
           <input type="text" id="urlInput" class="url-input"
-            placeholder="可直接粘贴B站分享文字（含标题），无需删减" autocomplete="off" spellcheck="false">
-          <button type="button" id="startBtn" class="btn btn-gold">开始规划</button>
+            placeholder="粘贴课程链接或分享文字，例如 bilibili.com/video/BV…" autocomplete="off" spellcheck="false">
+          <button type="button" id="startBtn" class="search-btn">开始规划</button>
         </div>
         <p class="parse-hint" id="parseHint" hidden></p>
-        <div class="daily-row">
+        <div class="landing-options">
           <label for="dailyMinutes">每天学习</label>
           <input type="number" id="dailyMinutes" class="num-input" value="45" min="10" max="480">
           <label>分钟</label>
         </div>
+        <div class="quick-links">
+          <span>试试：</span>
+          <button type="button" data-demo="BV1QeNc6iE84">高一数学</button>
+          <button type="button" data-demo="BV1fh411y7R8">韩顺平 Java</button>
+          <button type="button" data-demo="BV1QeNc6iE84" data-daily="60">60 分钟/天</button>
+        </div>
       </section>
 
       <section id="resultsSection" hidden>
-        <div id="expiryBanner" class="expiry-banner glass" hidden>
-          <p>⚠️ 数据已过期（超过7天），建议点击【重新规划】刷新课程数据</p>
-          <button type="button" id="expiryReplanBtn" class="btn btn-gold">重新规划</button>
+        <div id="expiryBanner" class="expiry-banner card" hidden>
+          <p>⚠️ 数据已过期（超过7天），建议重新规划刷新课程</p>
+          <button type="button" id="expiryReplanBtn" class="btn btn-primary">重新规划</button>
         </div>
-        <div class="dashboard glass" id="dashboard"></div>
-        <div class="today-focus" id="todayFocus"></div>
 
-        <div class="section-head">
-          <h3>全部日程</h3>
-          <span id="planCountLabel"></span>
+        <div class="result-grid">
+          <aside class="result-side">
+            <div class="course-preview card" id="coursePreview"></div>
+            <section class="input-card compact card" style="padding:14px">
+              <label class="input-label" for="urlInputSide">切换课程</label>
+              <div class="input-row">
+                <input type="text" id="urlInputSide" class="url-input"
+                  placeholder="粘贴新课程链接" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="daily-row">
+                <label for="dailyMinutesSide">每天</label>
+                <input type="number" id="dailyMinutesSide" class="num-input" value="45" min="10" max="480">
+                <label>分钟</label>
+              </div>
+              <button type="button" id="startBtnSide" class="btn btn-primary" style="width:100%;margin-top:10px">重新规划</button>
+            </section>
+            <p class="side-tip">💡 修改每日时长会自动重新切分课表</p>
+          </aside>
+
+          <div class="result-main card">
+            <div class="result-tabs" id="resultTabs">
+              <button type="button" class="result-tab active" data-tab="overview">📊 概览</button>
+              <button type="button" class="result-tab" data-tab="today">📍 今日</button>
+              <button type="button" class="result-tab" data-tab="schedule">📅 日程</button>
+              <button type="button" class="result-tab" data-tab="extra"><span class="spark">✨</span> 打卡</button>
+            </div>
+            <div class="tab-panel active" id="tabOverview">
+              <div class="tab-panel-inner"><div class="dashboard" id="dashboard"></div></div>
+            </div>
+            <div class="tab-panel" id="tabToday">
+              <div class="tab-panel-inner"><div class="today-focus" id="todayFocus"></div></div>
+            </div>
+            <div class="tab-panel" id="tabSchedule">
+              <div class="tab-panel-inner">
+                <div class="section-head">
+                  <h3>全部日程</h3>
+                  <span id="planCountLabel"></span>
+                </div>
+                <div class="day-grid" id="planList"></div>
+              </div>
+            </div>
+            <div class="tab-panel" id="tabExtra">
+              <div class="tab-panel-inner">
+                <p style="font-size:0.85rem;color:var(--text2);margin-bottom:14px;line-height:1.5">生成精美打卡图，分享到朋友圈记录学习进度。</p>
+                <div class="actions-row" style="margin-top:0">
+                  <button type="button" id="genCardBtn" class="btn btn-accent">📸 生成打卡卡片</button>
+                  <button type="button" id="replanBtn" class="btn btn-outline">🔄 清空重来</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="day-grid" id="planList"></div>
 
-        <div class="actions-row">
-          <button type="button" id="genCardBtn" class="btn btn-outline">📸 生成打卡卡片</button>
-          <button type="button" id="replanBtn" class="btn btn-outline">🔄 重新规划</button>
+        <div class="support-banner">
+          <p>升级会员，用 <strong>自律币</strong> 解锁打卡模板与更多高级功能 🪙</p>
+          <button type="button" id="vipBtn" class="btn btn-accent">⭐ 升级会员</button>
         </div>
       </section>
 
       <footer class="footer">
-        <button type="button" id="donateBtn" class="btn btn-outline">☕ 请我喝杯咖啡</button>
-        <p class="about">仅供学习交流 · 数据来自 B 站公开 API · 进度保存在本地</p>
+        <p class="about">支持 bilibili.com · b23.tv 链接 · 进度保存在本地 · 数据来自 B 站公开 API</p>
       </footer>
     </div>
   </div>
@@ -411,7 +783,7 @@
   <!-- 我的页 -->
   <div class="page" id="pageMine">
     <div class="wrap">
-      <div class="hero-mini"><h1>我的学习</h1><p>记录每一次进步，见证成长</p></div>
+      <div class="hero-mini"><h1>我的学习</h1><p>记录每一次进步</p></div>
       <div id="mineContent"></div>
     </div>
   </div>
@@ -431,7 +803,14 @@
 
   <script>
     const CONFIG = {
-      DONATE_QR_URL: 'https://via.placeholder.com/200x200/C9A96E/0B0B0E?text=微信赞赏码',
+      VIP_QR_URL: 'https://via.placeholder.com/200x200/2563EB/FFFFFF?text=自律币充值',
+      // ⚠️ 部署前替换为你自己的 Formspree 表单 ID：https://formspree.io/ → 创建表单 → 复制 endpoint
+      FORMSPREE_URL: 'https://formspree.io/f/yourFormID',
+      COIN_KEY: 'bili-planner-coins',
+      DEFAULT_COINS: 5,
+      /** 自有后端代理路径（Vercel 部署后自动生效） */
+      API_PROXY: '/api/bilibili',
+      /** 公共 CORS 代理（自有后端失败时的降级备选） */
       PROXIES: [
         { build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
         { build: u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, wrap: true },
@@ -441,8 +820,11 @@
       CACHE_TTL: 30 * 60 * 1000,
       STORAGE_KEY: 'bili-planner-v1',
       PLAN_CACHE_KEY: 'bili-planner-plan-cache',  // 规划快照（7天有效）
+      CONTINUE_DISMISS_KEY: 'bili-planner-continue-dismiss', // 已忽略的「继续上次」提示
       PWA_DISMISS_KEY: 'bili-planner-pwa-dismiss',
-      PLAN_EXPIRE_DAYS: 7
+      PLAN_EXPIRE_DAYS: 7,
+      /** 本地 server.js 地址（启动.bat / npm start） */
+      LOCAL_SERVER: 'http://127.0.0.1:3000'
     };
 
     let courseData = null, planData = [], progress = { completedDays: [] };
@@ -452,15 +834,41 @@
 
     const $ = id => document.getElementById(id);
 
-    // ===== 工具 =====
+    function getCoins() {
+      try {
+        const n = parseInt(localStorage.getItem(CONFIG.COIN_KEY));
+        return Number.isFinite(n) && n >= 0 ? n : CONFIG.DEFAULT_COINS;
+      } catch { return CONFIG.DEFAULT_COINS; }
+    }
+    function updateCoinDisplay() {
+      const n = getCoins();
+      if ($('coinBadge')) $('coinBadge').textContent = '🪙 ' + n + ' 自律币';
+      if ($('coinBalance')) $('coinBalance').textContent = n;
+    }
+
+    function showLanding() {
+      $('landingHero').hidden = false;
+    }
+    function hideLanding() {
+      $('landingHero').hidden = true;
+    }
+
     function showToast(msg) {
       const t = $('toast'); t.textContent = msg; t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2500);
     }
 
     function formatDuration(sec) {
+      sec = Math.max(0, Math.round(sec));
       const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
-      return h > 0 ? `${h}小时${m}分钟` : `${m}分钟`;
+      if (h > 0) return `${h}小时${m}分钟`;
+      if (m > 0) return `${m}分钟`;
+      return sec > 0 ? '不足1分钟' : '0分钟';
+    }
+    /** B 站封面 http→https，避免混合内容加载失败 */
+    function normalizeCover(url) {
+      if (!url) return '';
+      return String(url).replace(/^http:\/\//i, 'https://');
     }
     function formatShort(sec) {
       const m = Math.floor(sec / 60), s = sec % 60;
@@ -505,12 +913,98 @@
       return diff > CONFIG.PLAN_EXPIRE_DAYS;
     }
 
-    /** 从快照恢复界面（不请求 B 站 API） */
+    /** 是否已忽略某课程的「继续上次」提示 */
+    function isContinueDismissed(bvid) {
+      try {
+        const map = JSON.parse(localStorage.getItem(CONFIG.CONTINUE_DISMISS_KEY) || '{}');
+        return !!map[bvid];
+      } catch { return false; }
+    }
+
+    /** 忽略「继续上次」并记住，刷新后不再显示 */
+    function dismissContinueBanner(bvid) {
+      $('continueBanner').hidden = true;
+      try {
+        const map = JSON.parse(localStorage.getItem(CONFIG.CONTINUE_DISMISS_KEY) || '{}');
+        map[bvid] = true;
+        localStorage.setItem(CONFIG.CONTINUE_DISMISS_KEY, JSON.stringify(map));
+      } catch (e) { console.warn('忽略状态保存失败', e); }
+    }
+
+    /** 显示「继续上次」提示（不自动跳转） */
+    function showContinueBanner(cache, expired) {
+      if (isContinueDismissed(cache.bvid)) return;
+      const title = (cache.title || cache.bvid || '未知课程').slice(0, 30);
+      $('continueTitle').textContent = title + (title.length < (cache.title || '').length ? '…' : '') + (expired ? '（可能已过期）' : '');
+      $('continueBanner').hidden = false;
+      $('continueBtn').onclick = () => {
+        $('continueBanner').hidden = true;
+        openCourseFromHistory(cache.bvid, cache.dailyMinutes || 45, cache);
+      };
+      $('continueDismiss').onclick = () => dismissContinueBanner(cache.bvid);
+    }
+
+    /** 从进度记录中的 planSnapshot 恢复（无需请求 API） */
+    function restoreFromProgressSnapshot(bvid, saved, expired) {
+      const snap = saved.planSnapshot;
+      courseData = {
+        bvid,
+        title: snap.title || saved.title || bvid,
+        cover: normalizeCover(snap.cover || saved.cover || ''),
+        totalSeconds: snap.totalSeconds,
+        episodes: (snap.pList || []).map((p, i) => ({
+          index: p.index ?? i, title: p.title, duration: p.duration
+        }))
+      };
+      planData = snap.plan || [];
+      dailyMinutes.value = snap.dailyMinutes || saved.dailyMin || 45;
+      progress = getProgress(bvid);
+      urlInput.value = 'https://www.bilibili.com/video/' + bvid;
+      $('expiryBanner').hidden = !expired;
+      renderAll(+dailyMinutes.value);
+      scrollToResults();
+      showToast('📂 已恢复本地课表');
+    }
+
+    /** 打开历史课程：优先本地快照 → 规划缓存 → 在线抓取 */
+    async function openCourseFromHistory(bvid, dailyMin, planCache) {
+      bvid = normalizeBvid(bvid) || bvid;
+      if (!bvid) { showToast('课程 ID 无效'); return; }
+
+      switchPage('plan');
+      $('continueBanner').hidden = true;
+      dailyMin = Math.max(10, Math.min(480, dailyMin || 45));
+      dailyMinutes.value = dailyMin;
+      urlInput.value = 'https://www.bilibili.com/video/' + bvid;
+      showParseHint(urlInput.value);
+
+      const saved = loadAll()[bvid];
+
+      // 1. 进度里附带的完整课表快照（「我的」里最可靠）
+      if (saved?.planSnapshot?.plan?.length) {
+        const expired = saved.planSnapshot.generatedAt
+          ? isPlanCacheExpired(saved.planSnapshot) : false;
+        restoreFromProgressSnapshot(bvid, saved, expired);
+        return;
+      }
+
+      // 2. 全局规划缓存（与 continue 横幅同源）
+      const cache = planCache || loadPlanCache();
+      if (cache && bvidMatch(cache.bvid, bvid) && cache.plan?.length) {
+        restoreFromPlanCache(cache, isPlanCacheExpired(cache));
+        return;
+      }
+
+      // 3. 无本地数据，在线抓取
+      await startPlanningFromBvid(bvid, dailyMin);
+    }
+
+    /** 从规划缓存对象恢复 */
     function restoreFromPlanCache(cache, expired) {
       courseData = {
         bvid: cache.bvid,
         title: cache.title,
-        cover: cache.coverUrl || '',
+        cover: normalizeCover(cache.coverUrl || ''),
         totalSeconds: cache.totalSeconds,
         episodes: (cache.pList || []).map((p, i) => ({
           index: p.index ?? i, title: p.title, duration: p.duration
@@ -523,7 +1017,7 @@
       $('expiryBanner').hidden = !expired;
       renderAll(cache.dailyMinutes || 45);
       scrollToResults();
-      if (!expired) showToast('📂 已从本地缓存恢复');
+      if (!expired) showToast('📂 已恢复上次规划');
     }
 
     /** 更新分享 URL：?bvid=BVxxx&daily=45 */
@@ -557,33 +1051,78 @@
     }
 
     /** 平滑滚动到结果区 */
+    function switchResultTab(name) {
+      document.querySelectorAll('.result-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.tab === name));
+      $('tabOverview').classList.toggle('active', name === 'overview');
+      $('tabToday').classList.toggle('active', name === 'today');
+      $('tabSchedule').classList.toggle('active', name === 'schedule');
+      $('tabExtra').classList.toggle('active', name === 'extra');
+    }
+
+    function renderCoursePreview(dailyMin) {
+      const coverUrl = normalizeCover(courseData.cover);
+      const cover = coverUrl
+        ? `<img class="preview-cover" src="${esc(coverUrl)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'preview-cover-placeholder',textContent:'📺'}))">`
+        : `<div class="preview-cover-placeholder">📺</div>`;
+      $('coursePreview').innerHTML = `
+        <div class="preview-media">
+          ${cover}
+          <div class="preview-play"><span>▶</span></div>
+        </div>
+        <div class="preview-info">
+          <div class="preview-title">${esc(courseData.title)}</div>
+          <div class="preview-meta">${formatDuration(courseData.totalSeconds)} · ${courseData.episodes.length}P · 每天${dailyMin}分钟</div>
+          <div class="preview-tags">
+            <span class="preview-tag">智能规划</span>
+            <span class="preview-tag alt">${planData.length} 天计划</span>
+          </div>
+        </div>`;
+    }
+
+    function syncSideInputs() {
+      if ($('urlInputSide')) $('urlInputSide').value = urlInput.value;
+      if ($('dailyMinutesSide')) $('dailyMinutesSide').value = dailyMinutes.value;
+    }
+
     function scrollToResults() {
-      $('heroMini').hidden = true;
+      hideLanding();
       $('resultsSection').hidden = false;
+      syncSideInputs();
       requestAnimationFrame(() => {
         setTimeout(() => $('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
       });
     }
-
-    /** 重新规划：清空缓存并回到输入态 */
     function replan() {
       fetchGeneration++;
       try { localStorage.removeItem(CONFIG.PLAN_CACHE_KEY); } catch {}
       clearShareUrl();
       resetResults();
       $('expiryBanner').hidden = true;
+      $('continueBanner').hidden = true;
       urlInput.value = '';
       $('parseHint').hidden = true;
+      showLanding();
       urlInput.focus();
       showToast('已清空，请输入新课程链接');
     }
 
     /** 规划成功后统一收尾 */
     function applyPlanResult(dailyMin) {
+      const snapshot = {
+        title: courseData.title,
+        cover: courseData.cover,
+        totalSeconds: courseData.totalSeconds,
+        pList: courseData.episodes.map(e => ({ index: e.index, title: e.title, duration: e.duration })),
+        plan: planData,
+        dailyMinutes: dailyMin,
+        generatedAt: new Date().toISOString().slice(0, 10)
+      };
       saveProgress(courseData.bvid, {
         title: courseData.title, cover: courseData.cover,
         totalDays: planData.length, dailyMin,
-        completedDays: progress.completedDays || []
+        completedDays: progress.completedDays || [],
+        planSnapshot: snapshot
       });
       progress = getProgress(courseData.bvid);
       savePlanCache(dailyMin);
@@ -634,7 +1173,7 @@
       const c = document.createElement('canvas');
       c.width = c.height = size;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#0B0B0E';
+      ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, size, size);
       ctx.font = `${Math.round(size * 0.48)}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;
       ctx.textAlign = 'center';
@@ -654,8 +1193,8 @@
           start_url: location.pathname + location.search || './',
           scope: './',
           display: 'standalone',
-          background_color: '#0B0B0E',
-          theme_color: '#0B0B0E',
+          background_color: '#FFFFFF',
+          theme_color: '#2563EB',
           icons: [
             { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
             { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any' }
@@ -688,7 +1227,7 @@
         });
         self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
         self.addEventListener('fetch', e => {
-          if (e.request.url.includes('api.bilibili.com') || e.request.url.includes('allorigins')) return;
+          if (e.request.url.includes('api.bilibili.com') || e.request.url.includes('allorigins') || e.request.url.includes('/api/bilibili')) return;
           e.respondWith(
             caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
               if (res.ok && (e.request.url.includes('gstatic.com') || e.request.url.includes('jsdelivr'))) {
@@ -719,22 +1258,69 @@
       };
     }
 
-    /** 页面初始化：URL 分享 > 本地缓存 > 输入界面 */
+    /** file:// 打开时：检测本地 server.js，连接则走本地 API */
+    async function initLocalServer() {
+      if (location.protocol !== 'file:') return;
+
+      CONFIG.API_PROXY = CONFIG.LOCAL_SERVER + '/api/bilibili';
+
+      async function tryConnect() {
+        try {
+          const r = await fetch(CONFIG.LOCAL_SERVER + '/api/health', {
+            signal: AbortSignal.timeout(2000)
+          });
+          if (r.ok) {
+            $('localServerBanner').hidden = true;
+            document.body.classList.remove('has-local-banner');
+            return true;
+          }
+        } catch {}
+        return false;
+      }
+
+      if (await tryConnect()) {
+        showToast('✅ 已连接本地服务');
+        return;
+      }
+
+      $('localServerBanner').hidden = false;
+      document.body.classList.add('has-local-banner');
+      $('localServerRetry').onclick = async () => {
+        if (await tryConnect()) showToast('✅ 已连接本地服务');
+        else showToast('未检测到本地服务，请先双击 启动.bat');
+      };
+    }
+
+    /** 页面初始化：默认搜索页；分享链接仅预填；上次规划需手动点「继续」 */
     async function initApp() {
+      await initLocalServer();
       initInlineManifest();
       registerServiceWorker();
       initPwaBanner();
       updateMineBadge();
+      updateCoinDisplay();
+
+      // 始终先显示搜索落地页
+      resetResults();
 
       const urlParams = getUrlParams();
       if (urlParams) {
-        await startPlanningFromBvid(urlParams.bvid, urlParams.daily);
-        return;
+        // 分享链接：预填输入框，等用户点击「开始规划」（不自动加载）
+        urlInput.value = 'https://www.bilibili.com/video/' + urlParams.bvid;
+        dailyMinutes.value = urlParams.daily;
+        showParseHint(urlInput.value);
+        const hint = $('parseHint');
+        hint.hidden = false;
+        hint.textContent = '🔗 检测到分享链接，点击「开始规划」即可加载';
+      } else {
+        clearShareUrl();
+        urlInput.value = '';
+        $('parseHint').hidden = true;
       }
 
       const cache = loadPlanCache();
       if (cache?.bvid && cache.plan?.length) {
-        restoreFromPlanCache(cache, isPlanCacheExpired(cache));
+        showContinueBanner(cache, isPlanCacheExpired(cache));
       }
     }
 
@@ -796,18 +1382,25 @@
       return a && b && a.toUpperCase() === b.toUpperCase();
     }
     function cleanPasteText(raw) {
-      return String(raw).replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00a0/g, ' ').trim();
+      return String(raw)
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/\u00a0/g, ' ')
+        // 中文/字母紧贴 https 时插入空格，避免「全https://」解析异常
+        .replace(/([\u4e00-\u9fff\w])+(https?:\/\/)/gi, '$1 $2')
+        .trim();
     }
     function extractUrls(text) {
       const urls = [];
       const patterns = [
-        /https?:\/\/(?:www\.)?bilibili\.com\/[^\s\u3000【】[\]（）]+/gi,
-        /https?:\/\/b23\.tv\/[^\s\u3000【】[\]（）]+/gi,
-        /(?:^|\s)((?:www\.)?bilibili\.com\/video\/[^\s\u3000【】[\]（）]+)/gi
+        /https?:\/\/(?:www\.)?bilibili\.com\/[^\s\u3000【】[\]（）<>"']+/gi,
+        /https?:\/\/b23\.tv\/[^\s\u3000【】[\]（）<>"']+/gi,
+        /(?:^|\s)((?:www\.)?bilibili\.com\/video\/[^\s\u3000【】[\]（）<>"']+)/gi
       ];
       for (const re of patterns) {
         for (const m of text.matchAll(re)) {
-          let u = (m[1] || m[0]).trim().replace(/[，。！？；、\)】」'".,]+$/g, '');
+          let u = (m[1] || m[0]).trim();
+          // 去掉 URL 末尾可能粘连的中文标点
+          u = u.replace(/[，。！？；、\)】」'"<>]+$/g, '');
           if (!u.startsWith('http')) u = 'https://' + u;
           urls.push(u);
         }
@@ -839,8 +1432,9 @@
     }
     function parsePasteInput(raw) {
       const text = cleanPasteText(raw);
-      const titleMatch = text.match(/[【\[]([^\]]{2,80}?)[】\]]/);
-      const hintTitle = titleMatch ? titleMatch[1].replace(/^【+/, '').trim() : '';
+      const titleMatch = text.match(/[【\[]([^\]]{2,80}?)[】\]]/)
+        || text.match(/^(.{2,80}?)(?=https?:\/\/)/);
+      const hintTitle = titleMatch ? titleMatch[1].replace(/^[【\[]+/, '').trim() : '';
       return { videoId: extractBvFromText(text), hintTitle };
     }
     function showParseHint(raw) {
@@ -860,7 +1454,7 @@
         hint.textContent = '✓ 已识别短链，点击开始规划将自动展开';
       } else {
         hint.hidden = false;
-        hint.style.color = '#E8B86D';
+        hint.style.color = '#F59E0B';
         hint.textContent = '⚠ 未识别到 BV 号，请确认含 bilibili.com/video/BV…';
       }
     }
@@ -916,11 +1510,61 @@
       }
       throw err || new Error('Failed to fetch');
     }
+
+    /**
+     * 解析 B 站 API 路径，构建自有后端代理 URL
+     * 例：/x/web-interface/view?bvid=BVxxx → /api/bilibili?bvid=BVxxx
+     *     /x/web-interface/pagelist?bvid=BVxxx → /api/bilibili?bvid=BVxxx&type=pagelist
+     */
+    function buildOwnProxyUrl(biliPath) {
+      const qIdx = biliPath.indexOf('?');
+      const apiPath = qIdx >= 0 ? biliPath.slice(0, qIdx) : biliPath;
+      const params = new URLSearchParams(qIdx >= 0 ? biliPath.slice(qIdx + 1) : '');
+      const proxy = new URLSearchParams();
+      if (apiPath.includes('player/pagelist')) proxy.set('type', 'player_pagelist');
+      else if (apiPath.includes('pagelist')) proxy.set('type', 'pagelist');
+      if (params.get('bvid')) proxy.set('bvid', params.get('bvid'));
+      if (params.get('aid')) proxy.set('aid', params.get('aid'));
+      return `${CONFIG.API_PROXY}?${proxy}`;
+    }
+
+    /** 自有后端：一次获取完整课程（type=course，最快） */
+    async function fetchCourseViaBackend(bvid) {
+      const url = `${CONFIG.API_PROXY}?bvid=${encodeURIComponent(bvid)}&type=course`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `后端 HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      if (json.code !== 0 || !json.data?.episodes?.length) {
+        throw new Error(json.message || '后端返回数据无效');
+      }
+      return json.data;
+    }
+
+    /** 优先走自有 Vercel 后端代理 */
+    async function fetchViaOwnBackend(biliPath) {
+      const url = buildOwnProxyUrl(biliPath);
+      const res = await fetch(url, { signal: AbortSignal.timeout(18000) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `后端代理 HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      if (json.code !== 0) throw new Error(json.message || 'B 站 API 错误');
+      return json;
+    }
+
     async function fetchText(url) { return proxyFetch(url, false); }
+
+    /** 请求 B 站 JSON：自有后端 → 公共代理降级（顺序尝试，稳定优先） */
     async function fetchBiliJson(path) {
       const apiUrl = `https://api.bilibili.com${path}${path.includes('?') ? '&' : '?'}_nc=${Date.now()}`;
       const aoGet = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}&_nc=${Date.now()}`;
+
       const tries = [
+        () => fetchViaOwnBackend(path),
         async () => {
           const res = await fetch(aoGet, { signal: AbortSignal.timeout(CONFIG.JSONP_TIMEOUT) });
           if (!res.ok) throw new Error('fail');
@@ -936,13 +1580,19 @@
           script.src = aoGet + '&callback=' + cb;
           document.body.appendChild(script);
         }),
-        async () => proxyFetch(apiUrl, true)
+        () => proxyFetch(apiUrl, true)
       ];
-      try {
-        return await Promise.any(tries.map(fn => fn()));
-      } catch (e) {
-        throw e instanceof AggregateError ? new Error('网络请求失败') : e;
+
+      let lastErr;
+      for (const fn of tries) {
+        try {
+          return await fn();
+        } catch (e) {
+          lastErr = e;
+          console.warn('B站请求降级:', e.message || e);
+        }
       }
+      throw lastErr || new Error('网络请求失败');
     }
     function validateViewData(data, expectedBvid) {
       if (!data || !data.bvid) throw new Error('API 返回数据无效');
@@ -957,17 +1607,40 @@
       return validateViewData(json.data, expectedBvid);
     }
     async function fetchPagelist(bvid) {
-      const json = await fetchBiliJson(`/x/web-interface/pagelist?bvid=${bvid}`);
-      if (json.code !== 0) throw new Error(json.message || '分P列表获取失败');
-      if (!Array.isArray(json.data) || !json.data.length) throw new Error('分P列表为空');
-      return json.data;
+      // yt-dlp 优先 player/pagelist，再降级 web-interface/pagelist
+      const paths = [
+        `/x/player/pagelist?bvid=${bvid}&jsonp=jsonp`,
+        `/x/web-interface/pagelist?bvid=${bvid}`
+      ];
+      let lastErr;
+      for (const path of paths) {
+        try {
+          const json = await fetchBiliJson(path);
+          if (json.code === 0 && Array.isArray(json.data) && json.data.length) {
+            return json.data;
+          }
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error('分P列表获取失败');
     }
     async function fetchCourse(videoId, hintTitle) {
-      const requestedBvid = typeof videoId === 'string' ? videoId : null;
+      const requestedBvid = typeof videoId === 'string' ? normalizeBvid(videoId) || videoId : null;
 
       if (requestedBvid) {
         const cached = getCourseCache(requestedBvid);
         if (cached) return cached;
+
+        // 1. 优先：自有后端一次拿完整课程（部署后最快最稳）
+        try {
+          const course = await fetchCourseViaBackend(requestedBvid);
+          if (!bvidMatch(course.bvid, requestedBvid)) {
+            throw new Error('课程数据校验失败');
+          }
+          setCourseCache(requestedBvid, course);
+          return course;
+        } catch (e) {
+          console.warn('后端 course 接口失败，降级多路抓取:', e.message);
+        }
       }
 
       const viewPath = requestedBvid
@@ -977,7 +1650,6 @@
       let viewData = null, pages = [];
 
       if (requestedBvid) {
-        // 并行：pagelist（分P列表）+ view（标题封面），取先返回的，整体更快
         const [listR, viewR] = await Promise.allSettled([
           fetchPagelist(requestedBvid),
           fetchBiliData(viewPath, requestedBvid)
@@ -989,7 +1661,7 @@
         }
         if (!pages.length) {
           const err = listR.reason || viewR.reason;
-          throw err || new Error('未找到分P信息');
+          throw err || new Error('未找到分P信息，请检查链接或部署后端代理');
         }
         if (!viewData) {
           viewData = {
@@ -1001,14 +1673,21 @@
       } else {
         viewData = await fetchBiliData(viewPath, null);
         pages = viewData.pages || [];
+        if (!pages.length) {
+          try { pages = await fetchPagelist(viewData.bvid); } catch {}
+        }
       }
 
       if (!pages.length) throw new Error('未找到分P信息');
-      const episodes = pages.map((p, i) => ({ index: i, title: p.part || `P${i+1}`, duration: p.duration }));
+      const episodes = pages.map((p, i) => ({
+        index: i,
+        title: p.part || p.title || `P${i + 1}`,
+        duration: Number(p.duration) || 0
+      }));
       const result = {
         bvid: viewData.bvid || requestedBvid,
         title: viewData.title || hintTitle || requestedBvid,
-        cover: viewData.pic || '',
+        cover: normalizeCover(viewData.pic || ''),
         totalSeconds: episodes.reduce((s, e) => s + e.duration, 0),
         episodes
       };
@@ -1021,41 +1700,78 @@
     }
 
     // ===== 规划 =====
-    /** 用课程目录原名描述每日看到哪里（不依赖 P 编号） */
+    /** 用课程目录原名描述每日目标（续看/未看完表述清晰） */
     function getCatalogRange(day) {
       const parts = day.pList;
       const first = parts[0], last = parts[parts.length - 1];
-      const start = first.title;
-      const end = last.title;
+      const studyLabel = formatDuration(parts.reduce((s, p) => s + p.duration, 0));
+
+      // 第一天第一个分P且从中间续看（跨天衔接）
+      const continues = first.partial && first.startAt > 0;
 
       if (parts.length === 1) {
+        if (continues) {
+          return {
+            main: `继续「${first.title}」从 ${formatShort(first.startAt)} 看到 ${formatShort(first.endAt)}`,
+            sub: `本日学习约 ${studyLabel}${last.endAt < (courseData?.episodes?.[first.index]?.duration || last.endAt) ? ' · 本集仍未看完' : ''}`
+          };
+        }
         if (last.partial) {
           return {
-            main: `看到「${start}」的 ${formatShort(last.duration)}（未看完）`,
-            sub: `目录第 ${first.index + 1} 条 · 共 1 个视频`
+            main: `「${last.title}」从头看到 ${formatShort(last.endAt)}（本集未看完，明天继续）`,
+            sub: `本日学习约 ${studyLabel}`
           };
         }
         return {
-          main: `学完「${start}」`,
-          sub: `目录第 ${first.index + 1} 条 · 共 1 个视频`
+          main: `学完「${first.title}」`,
+          sub: `本日学习约 ${studyLabel} · 目录第 ${first.index + 1} 条`
         };
       }
 
       if (last.partial) {
         const fullEnd = parts.length > 1 ? parts[parts.length - 2].title : null;
-        const main = fullEnd
-          ? `从「${start}」到「${fullEnd}」整集，再看到「${end}」的 ${formatShort(last.duration)}`
-          : `看到「${start}」的 ${formatShort(last.duration)}（未看完）`;
+        let main;
+        if (continues && fullEnd) {
+          main = `继续「${first.title}」${formatShort(first.startAt)}→${formatShort(first.endAt)}，再看到「${fullEnd}」整集，「${last.title}」看到 ${formatShort(last.endAt)}（明日继续）`;
+        } else if (continues) {
+          main = `继续「${first.title}」${formatShort(first.startAt)}→${formatShort(first.endAt)}，「${last.title}」看到 ${formatShort(last.endAt)}（明日继续）`;
+        } else if (fullEnd) {
+          main = `从「${first.title}」到「${fullEnd}」整集，「${last.title}」看到 ${formatShort(last.endAt)}（本集未看完，明天继续）`;
+        } else {
+          main = `「${first.title}」看到 ${formatShort(last.endAt)}（本集未看完，明天继续）`;
+        }
         return {
           main,
-          sub: `目录第 ${first.index + 1}–${last.index + 1} 条 · 共 ${parts.length} 个视频`
+          sub: `本日学习约 ${studyLabel} · 目录第 ${first.index + 1}–${last.index + 1} 条 · ${parts.length} 个视频`
+        };
+      }
+
+      if (continues) {
+        const fullEnd = parts.length > 1 ? parts[parts.length - 1].title : first.title;
+        const main = parts.length > 1
+          ? `继续「${first.title}」${formatShort(first.startAt)}→${formatShort(first.endAt)}，再学到「${fullEnd}」`
+          : `继续「${first.title}」从 ${formatShort(first.startAt)} 看到 ${formatShort(first.endAt)}`;
+        return {
+          main,
+          sub: `本日学习约 ${studyLabel} · 目录第 ${first.index + 1}–${last.index + 1} 条`
         };
       }
 
       return {
-        main: `从「${start}」到「${end}」`,
-        sub: `目录第 ${first.index + 1}–${last.index + 1} 条 · 共 ${parts.length} 个视频`
+        main: `从「${first.title}」到「${last.title}」`,
+        sub: `本日学习约 ${studyLabel} · 目录第 ${first.index + 1}–${last.index + 1} 条 · ${parts.length} 个视频`
       };
+    }
+
+    /** 日程展开：单条分P说明 */
+    function describePartDetail(p) {
+      if (p.partial && p.startAt > 0) {
+        return `继续「${p.title}」${formatShort(p.startAt)} → ${formatShort(p.endAt)}（本段 ${formatDuration(p.duration)}）`;
+      }
+      if (p.partial) {
+        return `「${p.title}」0:00 → ${formatShort(p.endAt)}（本段 ${formatDuration(p.duration)}，本集未看完）`;
+      }
+      return `「${p.title}」整集（${formatDuration(p.duration)}）`;
     }
 
     function getDayRecommend(day) {
@@ -1080,6 +1796,7 @@
           }
           if (left <= 0) break;
           parts.push({ index: i, title: ep.title, duration: left, partial: true, fullEpisode: false, startAt: offset, endAt: offset + left });
+          used += left;  // 修复：partial 段的时长也要计入本日总量
           offset += left; break;
         }
         if (!parts.length) break;
@@ -1088,7 +1805,7 @@
           day: dayNum, pList: parts,
           catalogMain: catalog.main,
           catalogSub: catalog.sub,
-          totalSec: used
+          totalSec: parts.reduce((s, p) => s + p.duration, 0)
         });
         dayNum++;
       }
@@ -1109,30 +1826,36 @@
     }
 
     // ===== 渲染 =====
+    function refreshPlanLabels() {
+      if (!planData?.length) return;
+      planData.forEach(d => {
+        d.totalSec = d.pList.reduce((s, p) => s + p.duration, 0);
+        const cat = getCatalogRange(d);
+        d.catalogMain = cat.main;
+        d.catalogSub = cat.sub;
+      });
+    }
+
     function renderAll(dailyMin) {
       if (!courseData || !planData.length) return;
+      refreshPlanLabels();
       currentDayIdx = getCurrentDayIdx();
       const stats = calcStats();
       const cur = planData[currentDayIdx];
 
-      $('heroMini').hidden = true;
+      hideLanding();
       $('resultsSection').hidden = false;
 
+      renderCoursePreview(dailyMin);
+
       $('dashboard').innerHTML = `
-        <div class="dash-top">
-          <img class="dash-cover" src="${courseData.cover}" alt="">
-          <div class="dash-info">
-            <div class="dash-title">${courseData.title}</div>
-            <div class="dash-meta">${formatDuration(courseData.totalSeconds)} · ${courseData.episodes.length}P · 每天${dailyMin}分钟</div>
-          </div>
-        </div>
         <div class="progress-block">
-          <div class="progress-head"><span>学习进度</span><span>${stats.pct}% · 已完成 ${stats.done}/${stats.total} 天</span></div>
+          <div class="progress-head"><span>学习进度</span><span>${stats.pct}% · ${stats.done}/${stats.total} 天</span></div>
           <div class="progress-track"><div class="progress-fill" style="width:${stats.pct}%"></div></div>
         </div>
         <div class="stats-row">
-          <div class="stat-box"><div class="stat-num">${stats.done}</div><div class="stat-label">已完成(天)</div></div>
-          <div class="stat-box"><div class="stat-num">${stats.remain}</div><div class="stat-label">剩余(天)</div></div>
+          <div class="stat-box"><div class="stat-num">${stats.done}</div><div class="stat-label">已完成</div></div>
+          <div class="stat-box"><div class="stat-num">${stats.remain}</div><div class="stat-label">剩余天</div></div>
           <div class="stat-box"><div class="stat-num">${stats.pct}%</div><div class="stat-label">总进度</div></div>
         </div>`;
 
@@ -1140,13 +1863,12 @@
       const curCat = getCatalogRange(cur);
       $('todayFocus').innerHTML = `
         <div class="today-tag">${isDone ? '✅ 今日已完成 · 明天继续' : '📍 当前学习 · 第 ' + cur.day + ' 天'}</div>
-        <div class="today-range">${esc(cur.catalogMain || curCat.main)}</div>
-        <div class="today-range-sub">${esc(cur.catalogSub || curCat.sub)} · ${formatDuration(cur.totalSec)}</div>
+        <div class="today-range">${esc(curCat.main)}</div>
+        <div class="today-range-sub">${esc(curCat.sub)}</div>
         <div class="today-tip">${esc(getDayRecommend(cur))}</div>
-        <div class="today-items">${cur.pList.map(p => {
-          const partialNote = p.partial ? ` · 看到 ${formatShort(p.duration)}` : '';
-          return `<div class="today-pill"><span>${esc(p.title)}${partialNote}</span></div>`;
-        }).join('')}
+        <div class="today-items">${cur.pList.map(p =>
+          `<div class="today-pill"><span>${esc(describePartDetail(p))}</span></div>`
+        ).join('')}
         </div>
         <div class="check-row">
           <button class="check-btn${isDone ? ' done' : ''}" id="todayCheckBtn">${isDone ? '✓ 已完成，点击取消' : '✓ 标记今日学完'}</button>
@@ -1159,21 +1881,18 @@
         const done = progress.completedDays.includes(d.day);
         const isCur = idx === currentDayIdx;
         const cat = getCatalogRange(d);
-        const main = d.catalogMain || cat.main;
-        const sub = d.catalogSub || cat.sub;
         return `
           <div class="day-row${done?' completed':''}${isCur?' current':''}" data-day="${d.day}" data-idx="${idx}">
             <div class="day-check${done?' checked':''}" data-check="${d.day}">${done?'✓':''}</div>
             <div class="day-row-body">
-              <div class="day-row-title">第 ${d.day} 天${isCur?' · 当前':''} · ${formatDuration(d.totalSec)}</div>
-              <div class="day-row-catalog">${esc(main)}</div>
-              <div class="day-row-sub">${esc(sub)}</div>
+              <div class="day-row-title">第 ${d.day} 天${isCur?' · 当前':''} · 约 ${formatDuration(d.totalSec)}</div>
+              <div class="day-row-catalog">${esc(cat.main)}</div>
+              <div class="day-row-sub">${esc(cat.sub)}</div>
             </div>
           </div>
-          <div class="day-detail" id="detail-${d.day}">${d.pList.map(p => {
-            const note = p.partial ? `看到 ${formatShort(p.duration)}` : `整集 ${formatShort(p.duration)}`;
-            return `<div class="day-detail-item">「${esc(p.title)}」· ${note}</div>`;
-          }).join('')}</div>`;
+          <div class="day-detail" id="detail-${d.day}">${d.pList.map(p =>
+            `<div class="day-detail-item">${esc(describePartDetail(p))}</div>`
+          ).join('')}</div>`;
       }).join('');
 
       $('planList').querySelectorAll('.day-row').forEach(row => {
@@ -1208,15 +1927,15 @@
       const all = loadAll();
       const keys = Object.keys(all).sort((a,b) => (all[b].updatedAt||0) - (all[a].updatedAt||0));
       if (!keys.length) {
-        $('mineContent').innerHTML = '<div class="mine-empty glass"><div style="font-size:3rem">📭</div><p>还没有学习记录<br>去规划页添加课程吧</p></div>';
+        $('mineContent').innerHTML = '<div class="mine-empty card"><div style="font-size:2.5rem">📭</div><p>还没有学习记录<br>去规划页添加课程吧</p></div>';
         return;
       }
       $('mineContent').innerHTML = '<div class="mine-list">' + keys.map(bvid => {
         const c = all[bvid];
         const done = (c.completedDays||[]).length, total = c.totalDays || 1;
         const pct = Math.round(done / total * 100);
-        return `<div class="mine-card" data-bvid="${bvid}">
-          <img class="mine-cover" src="${c.cover||''}" alt="">
+        return `<div class="mine-card" data-bvid="${bvid}" data-daily="${c.dailyMin || 45}">
+          <img class="mine-cover" src="${esc(normalizeCover(c.cover) || '')}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.visibility='hidden'">
           <div class="mine-body">
             <div class="mine-title">${c.title||bvid}</div>
             <div class="mine-progress">
@@ -1230,9 +1949,7 @@
 
       $('mineContent').querySelectorAll('.mine-card').forEach(card => {
         card.onclick = () => {
-          switchPage('plan');
-          urlInput.value = 'https://www.bilibili.com/video/' + card.dataset.bvid;
-          startPlanning();
+          openCourseFromHistory(card.dataset.bvid, +card.dataset.daily || 45);
         };
       });
     }
@@ -1293,10 +2010,12 @@
       planData = [];
       progress = { completedDays: [] };
       $('resultsSection').hidden = true;
+      showLanding();
       $('dashboard').innerHTML = '';
       $('todayFocus').innerHTML = '';
       $('planList').innerHTML = '';
-      $('heroMini').hidden = false;
+      $('coursePreview').innerHTML = '';
+      $('parseHint').hidden = true;
     }
 
     async function startPlanning() {
@@ -1363,28 +2082,112 @@
       }
     }
 
+    function openVipModal() {
+      $('vipQr').src = CONFIG.VIP_QR_URL;
+      updateCoinDisplay();
+      $('vipModal').classList.add('active');
+    }
+
+    // ===== 用户反馈（Formspree） =====
+    function openFeedbackModal() {
+      $('feedbackModal').classList.add('active');
+      $('feedbackMessage').focus();
+    }
+    function closeFeedbackModal() {
+      $('feedbackModal').classList.remove('active');
+    }
+    async function submitFeedback(e) {
+      e.preventDefault();
+      const message = $('feedbackMessage').value.trim();
+      const contact = $('feedbackContact').value.trim();
+      if (!message) { showToast('请填写反馈内容'); return; }
+
+      const btn = $('feedbackSubmit');
+      btn.disabled = true;
+      btn.textContent = '发送中…';
+      try {
+        const res = await fetch(CONFIG.FORMSPREE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            message,
+            contact: contact || '未填写',
+            _subject: 'B站课表规划器 - 用户反馈'
+          })
+        });
+        if (res.ok) {
+          showToast('感谢反馈！');
+          $('feedbackForm').reset();
+          closeFeedbackModal();
+        } else {
+          throw new Error('submit failed');
+        }
+      } catch {
+        showToast('提交失败，请稍后重试');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '发送反馈';
+      }
+    }
+
     // ===== 事件 =====
     document.querySelectorAll('.nav-tab').forEach(t => t.onclick = () => switchPage(t.dataset.page));
+    document.querySelectorAll('.result-tab').forEach(t =>
+      t.onclick = () => switchResultTab(t.dataset.tab));
+    document.querySelectorAll('[data-demo]').forEach(btn => {
+      btn.onclick = () => {
+        urlInput.value = 'https://www.bilibili.com/video/' + btn.dataset.demo;
+        if (btn.dataset.daily) dailyMinutes.value = btn.dataset.daily;
+        showParseHint(urlInput.value);
+        urlInput.focus();
+      };
+    });
     $('startBtn').onclick = debounce(startPlanning, 300);
+    $('startBtnSide').onclick = debounce(() => {
+      const side = $('urlInputSide').value.trim();
+      if (side) urlInput.value = side;
+      dailyMinutes.value = $('dailyMinutesSide').value;
+      startPlanning();
+    }, 300);
     urlInput.onkeydown = e => { if (e.key === 'Enter') startPlanning(); };
     urlInput.oninput = () => showParseHint(urlInput.value);
     urlInput.onpaste = () => setTimeout(() => showParseHint(urlInput.value), 50);
     $('genCardBtn').onclick = generateCard;
     $('replanBtn').onclick = replan;
     $('expiryReplanBtn').onclick = replan;
-    $('donateBtn').onclick = () => { $('donateQr').src = CONFIG.DONATE_QR_URL; $('donateModal').classList.add('active'); };
-    $('modalClose').onclick = () => $('donateModal').classList.remove('active');
-    $('donateModal').onclick = e => { if (e.target === $('donateModal')) $('donateModal').classList.remove('active'); };
+    $('vipBtn').onclick = openVipModal;
+    $('vipBtnTop').onclick = openVipModal;
+    $('modalClose').onclick = () => $('vipModal').classList.remove('active');
+    $('vipModal').onclick = e => { if (e.target === $('vipModal')) $('vipModal').classList.remove('active'); };
+    $('feedbackFab').onclick = openFeedbackModal;
+    $('feedbackCancel').onclick = closeFeedbackModal;
+    $('feedbackModal').onclick = e => { if (e.target === $('feedbackModal')) closeFeedbackModal(); };
+    $('feedbackForm').onsubmit = submitFeedback;
     dailyMinutes.onchange = () => {
       if (!courseData || isLoading) return;
       const m = Math.max(10, Math.min(480, parseInt(dailyMinutes.value) || 45));
       dailyMinutes.value = m;
+      if ($('dailyMinutesSide')) $('dailyMinutesSide').value = m;
       planData = generatePlan(courseData.episodes, m);
-      saveProgress(courseData.bvid, { totalDays: planData.length, dailyMin: m });
+      const snap = courseData ? {
+        title: courseData.title, cover: courseData.cover,
+        totalSeconds: courseData.totalSeconds,
+        pList: courseData.episodes.map(e => ({ index: e.index, title: e.title, duration: e.duration })),
+        plan: planData, dailyMinutes: m,
+        generatedAt: new Date().toISOString().slice(0, 10)
+      } : null;
+      saveProgress(courseData.bvid, {
+        totalDays: planData.length, dailyMin: m,
+        ...(snap ? { planSnapshot: snap } : {})
+      });
       progress = getProgress(courseData.bvid);
       savePlanCache(m);
       updateShareUrl(courseData.bvid, m);
       renderAll(m);
+    };
+    $('dailyMinutesSide').onchange = () => {
+      dailyMinutes.value = $('dailyMinutesSide').value;
+      dailyMinutes.onchange();
     };
 
     initApp();
