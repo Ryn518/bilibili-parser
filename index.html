@@ -81,18 +81,107 @@
       font-size: 0.65rem; font-weight: 700; margin-left: 3px; text-align: center;
     }
     .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .coin-badge {
-      font-size: 0.78rem; font-weight: 600; color: var(--accent-text);
-      background: var(--accent-light); border: 1px solid rgba(59,130,246,0.3);
-      padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+    .user-area {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 6px 4px 8px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(237,242,250,0.92));
+      border: 1px solid var(--border); border-radius: 999px;
+      box-shadow: 0 1px 4px rgba(30,64,175,0.06);
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .btn-vip {
-      padding: 8px 16px; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+    .user-area:hover { border-color: rgba(59,130,246,0.35); box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
+    .user-area.guest { padding-right: 8px; }
+    .user-area.free {
+      background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(237,242,250,0.94));
+      border-color: var(--border);
+      box-shadow: 0 1px 4px rgba(30,64,175,0.06);
+    }
+    .user-area.free:hover { border-color: rgba(59,130,246,0.35); box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
+    .user-area.premium {
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 55%, #FDE68A 100%);
+      border-color: #FCD34D;
+      box-shadow: 0 2px 12px rgba(245,158,11,0.18), inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    .user-area.premium:hover {
+      border-color: #F59E0B;
+      box-shadow: 0 3px 16px rgba(245,158,11,0.26), inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    .user-chip { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .user-avatar {
+      width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%;
+      background: linear-gradient(145deg, #DBEAFE, #BFDBFE);
+      border: 1.5px solid rgba(59,130,246,0.22);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 700; color: var(--accent-text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .user-area.guest .user-avatar {
+      background: linear-gradient(145deg, #F8FAFC, #E2E8F0);
+      border-color: var(--border2); color: var(--text3); font-size: 0.9rem;
+    }
+    .user-area.free .user-avatar {
+      background: linear-gradient(145deg, #DBEAFE, #BFDBFE);
+      border-color: rgba(59,130,246,0.28); color: var(--accent-text);
+    }
+    .user-area.premium .user-avatar {
+      background: linear-gradient(145deg, #FDE68A, #FBBF24);
+      border-color: #F59E0B; color: #92400E;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 1px 4px rgba(245,158,11,0.28);
+    }
+    .user-area.premium .user-avatar::after {
+      content: '★'; position: absolute; top: -3px; right: -3px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #F59E0B; color: #fff; font-size: 0.5rem; line-height: 14px; text-align: center;
+      box-shadow: 0 1px 3px rgba(180,83,9,0.35);
+    }
+    .user-area.premium .user-avatar { position: relative; }
+    .user-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; max-width: 108px; }
+    .user-name {
+      font-size: 0.76rem; font-weight: 600; color: var(--ink);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-status {
+      font-size: 0.65rem; color: var(--text3);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-area.guest .user-name { color: var(--text2); font-weight: 500; }
+    .user-area.free .user-name { color: var(--ink); }
+    .user-area.free .user-status { color: var(--text3); }
+    .user-area.premium .user-name { color: #92400E; font-weight: 700; }
+    .user-area.premium .user-status { color: #B45309; font-weight: 600; }
+    .user-area.premium .btn-auth-ghost { color: #B45309; }
+    .user-area.premium .btn-auth-ghost:hover { color: #92400E; background: rgba(254,243,199,0.85); }
+    .btn-auth-primary {
+      padding: 6px 14px; font-family: inherit; font-size: 0.76rem; font-weight: 600;
       border: none; border-radius: 999px; cursor: pointer;
       background: var(--accent-grad); color: #fff;
-      box-shadow: 0 2px 10px rgba(59,130,246,0.35); transition: 0.15s;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.28); transition: 0.15s;
+      white-space: nowrap; flex-shrink: 0;
     }
-    .btn-vip:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,130,246,0.45); }
+    .btn-auth-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.38); }
+    .btn-auth-ghost {
+      padding: 5px 10px; font-family: inherit; font-size: 0.72rem; font-weight: 500;
+      border: none; border-radius: 999px; cursor: pointer;
+      background: transparent; color: var(--text3); transition: 0.15s; flex-shrink: 0;
+    }
+    .btn-auth-ghost:hover { color: #DC2626; background: rgba(254,242,242,0.9); }
+    .btn-vip {
+      padding: 8px 14px; font-family: inherit; font-size: 0.8rem; font-weight: 600;
+      border: none; border-radius: 999px; cursor: pointer;
+      background: var(--accent-grad); color: #fff;
+      box-shadow: 0 2px 10px rgba(59,130,246,0.3); transition: 0.15s;
+      white-space: nowrap;
+    }
+    .btn-vip:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,130,246,0.42); }
+    .btn-vip.subtle {
+      background: var(--surface); color: var(--accent-text);
+      border: 1px solid rgba(59,130,246,0.35);
+      box-shadow: none;
+    }
+    .btn-vip.subtle:hover {
+      background: var(--accent-light); transform: none;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+    }
 
     .page { display: none; position: relative; z-index: 1; }
     .page.active { display: block; }
@@ -240,12 +329,34 @@
     }
     .btn-accent:hover { transform: translateY(-1px); }
 
+    /* 结果页 */
+    .results-panel {
+      padding: 36px 0 12px;
+      animation: resultsIn 0.4s ease;
+    }
+    @keyframes resultsIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .results-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 24px; padding-bottom: 18px;
+      border-bottom: 1px solid var(--border2);
+      max-width: 920px; margin-left: auto; margin-right: auto;
+    }
+    .results-header-label {
+      font-size: 0.88rem; font-weight: 600; color: var(--text2);
+    }
+    .results-inner {
+      max-width: 920px; margin: 0 auto;
+    }
+
     /* 结果双栏 */
     .result-grid {
-      display: grid; grid-template-columns: 1fr; gap: 14px;
+      display: grid; grid-template-columns: 1fr; gap: 18px;
     }
     @media (min-width: 768px) {
-      .result-grid { grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+      .result-grid { grid-template-columns: 260px 1fr; gap: 20px; align-items: start; }
     }
     .result-side { display: flex; flex-direction: column; gap: 12px; }
     .course-preview {
@@ -394,7 +505,7 @@
 
     /* 会员引导 */
     .support-banner {
-      margin-top: 14px; padding: 14px 16px; border-radius: var(--radius);
+      margin-top: 20px; padding: 14px 18px; border-radius: var(--radius);
       background: linear-gradient(135deg, #DBEAFE, #FFFFFF);
       border: 1px solid rgba(59,130,246,0.28);
       display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;
@@ -403,24 +514,44 @@
     .support-banner strong { color: var(--accent-text); }
     .support-banner .btn-accent { flex-shrink: 0; min-width: 110px; font-size: 0.82rem; min-height: 36px; padding: 8px 16px; }
 
-    /* 过期提示 */
-    .expiry-banner {
-      padding: 12px 14px; margin-bottom: 12px; border-radius: var(--radius-sm);
-      background: #FFFBEB; border: 1px solid #FDE68A;
-      display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between;
+    /* 返回首页 */
+    .btn-back-home {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px;
+      background: var(--surface); color: var(--text2); font-size: 0.82rem; font-weight: 500;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+      box-shadow: var(--shadow); flex-shrink: 0;
     }
-    .expiry-banner p { font-size: 0.82rem; color: #92400E; flex: 1; min-width: 180px; }
-    .expiry-banner .btn { flex: 0 0 auto; min-width: 100px; width: auto; font-size: 0.82rem; min-height: 36px; }
+    .btn-back-home:hover {
+      border-color: var(--accent); color: var(--accent-text);
+      box-shadow: 0 2px 10px rgba(59,130,246,0.15);
+    }
+
+    /* 右下角浮动区 */
+    .float-dock {
+      position: fixed; right: 20px; bottom: 20px; z-index: 120;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+      pointer-events: none;
+    }
+    .float-dock > * { pointer-events: auto; }
 
     /* PWA */
     .pwa-banner {
-      position: fixed; bottom: 16px; right: 16px; left: 16px; max-width: 340px; margin-left: auto;
-      z-index: 120; padding: 12px 14px; border-radius: var(--radius-sm);
-      background: var(--surface); border: 1px solid var(--border);
-      display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg);
+      padding: 10px 14px 10px 16px; border-radius: 999px;
+      background: rgba(255,255,255,0.96); border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: var(--shadow-lg); max-width: 300px;
     }
-    .pwa-banner p { flex: 1; font-size: 0.82rem; color: var(--text); }
-    .pwa-close { background: transparent; border: none; color: var(--text3); font-size: 1.1rem; cursor: pointer; padding: 4px; }
+    .pwa-banner p { flex: 1; font-size: 0.78rem; color: var(--text2); line-height: 1.4; }
+    .pwa-close {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+      background: var(--surface2); border: none; color: var(--text3);
+      font-size: 1rem; line-height: 1; cursor: pointer; transition: 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pwa-close:hover { background: var(--border2); color: var(--text); }
+    .pwa-banner[hidden] { display: none !important; }
 
     /* 我的 */
     .mine-empty { text-align: center; padding: 48px 20px; color: var(--text3); }
@@ -438,6 +569,12 @@
     .mine-progress { margin-top: 6px; }
     .mine-progress-text { font-size: 0.72rem; color: var(--text3); margin-top: 3px; }
     .mine-pct { font-size: 1rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+    .mine-delete {
+      flex-shrink: 0; background: transparent; border: none; cursor: pointer;
+      color: var(--text3); font-size: 1rem; padding: 6px 8px; border-radius: 8px;
+      line-height: 1; transition: color 0.15s, background 0.15s;
+    }
+    .mine-delete:hover { color: #DC2626; background: #FEF2F2; }
 
     /* 加载 */
     .loading-overlay {
@@ -486,7 +623,181 @@
     }
     .modal h3 { margin-bottom: 6px; font-size: 1.1rem; color: var(--ink); }
     .modal p { font-size: 0.82rem; color: var(--text2); margin-bottom: 18px; }
-    .modal-qr { width: 168px; height: 168px; border-radius: 10px; border: 1px solid var(--border); }
+
+    /* 定价页（参考 SaveAny 双栏方案） */
+    .modal-pricing {
+      max-width: 820px; padding: 0; text-align: left; overflow: hidden;
+      border-radius: 20px; position: relative;
+    }
+    .pricing-close {
+      position: absolute; top: 16px; right: 16px; z-index: 2;
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: var(--surface2); color: var(--text3); font-size: 1.2rem;
+      cursor: pointer; line-height: 1; transition: 0.15s;
+    }
+    .pricing-close:hover { background: var(--border2); color: var(--text); }
+    .pricing-header {
+      padding: 32px 32px 20px; text-align: center;
+      background: linear-gradient(180deg, #F0F6FF 0%, var(--surface) 100%);
+      border-bottom: 1px solid var(--border2);
+    }
+    .pricing-header h2 {
+      font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 800;
+      color: var(--ink); letter-spacing: -0.02em; margin-bottom: 8px;
+    }
+    .pricing-header > p {
+      font-size: 0.88rem; color: var(--text2); max-width: 520px;
+      margin: 0 auto 16px; line-height: 1.55;
+    }
+    .pricing-user-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--border);
+      font-size: 0.78rem; color: var(--text2); box-shadow: var(--shadow);
+    }
+    .pricing-user-pill strong { color: var(--accent-text); font-weight: 600; }
+    .pricing-user-pill.vip {
+      background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+      border-color: #FCD34D; color: #92400E;
+      box-shadow: 0 2px 10px rgba(245,158,11,0.15);
+    }
+    .pricing-user-pill.vip strong { color: #B45309; }
+    .pricing-body { padding: 24px 28px 28px; }
+    .pricing-billing {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 22px;
+      padding: 4px; background: var(--surface2); border-radius: 999px;
+      border: 1px solid var(--border); width: fit-content; margin-left: auto; margin-right: auto;
+    }
+    .billing-btn {
+      padding: 8px 20px; border: none; border-radius: 999px;
+      font-family: inherit; font-size: 0.82rem; font-weight: 500;
+      color: var(--text2); background: transparent; cursor: pointer; transition: 0.15s;
+    }
+    .billing-btn.active {
+      background: var(--surface); color: var(--ink); font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .billing-btn .save-tag {
+      font-size: 0.68rem; color: #EA580C; font-weight: 700; margin-left: 4px;
+    }
+    .pricing-cards {
+      display: grid; grid-template-columns: 1fr; gap: 16px;
+    }
+    @media (min-width: 640px) {
+      .pricing-cards { grid-template-columns: 1fr 1fr; gap: 20px; }
+    }
+    .pricing-card {
+      position: relative; padding: 24px 22px; border-radius: 16px;
+      border: 1px solid var(--border); background: var(--surface);
+      display: flex; flex-direction: column; min-height: 380px;
+    }
+    .pricing-card-free { box-shadow: var(--shadow); }
+    .pricing-card-vip {
+      background: var(--accent-grad); border-color: transparent;
+      color: #fff; box-shadow: 0 8px 32px rgba(37,99,235,0.35);
+    }
+    .pricing-badge {
+      position: absolute; top: 16px; right: 16px;
+      padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+      background: #F97316; color: #fff;
+    }
+    .pricing-card h3 { font-size: 1.15rem; font-weight: 800; margin-bottom: 4px; }
+    .pricing-card-vip h3 { color: #fff; }
+    .pricing-card-desc { font-size: 0.78rem; margin-bottom: 18px; opacity: 0.85; }
+    .pricing-card-free .pricing-card-desc { color: var(--text2); }
+    .pricing-card-vip .pricing-card-desc { color: rgba(255,255,255,0.88); }
+    .pricing-price {
+      display: flex; align-items: baseline; gap: 4px; margin-bottom: 20px;
+    }
+    .pricing-price .currency { font-size: 1.1rem; font-weight: 700; }
+    .pricing-price .amount { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+    .pricing-card-vip .pricing-price .currency,
+    .pricing-card-vip .pricing-price .amount { color: #fff; }
+    .pricing-price .period { font-size: 0.88rem; opacity: 0.75; margin-left: 2px; }
+    .pricing-promo {
+      display: inline-block; margin-left: 8px; padding: 3px 8px;
+      border-radius: 6px; font-size: 0.68rem; font-weight: 600;
+      background: rgba(255,255,255,0.2); color: #fff;
+    }
+    .pricing-features {
+      list-style: none; flex: 1; margin-bottom: 20px;
+      font-size: 0.82rem; line-height: 1.75;
+    }
+    .pricing-card-free .pricing-features { color: var(--text); }
+    .pricing-card-vip .pricing-features { color: rgba(255,255,255,0.95); }
+    .pricing-features li {
+      display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px;
+    }
+    .pricing-features li::before {
+      content: '✓'; flex-shrink: 0; font-weight: 700; margin-top: 1px;
+    }
+    .pricing-card-free .pricing-features li::before { color: var(--green); }
+    .pricing-card-vip .pricing-features li::before { color: rgba(255,255,255,0.9); }
+    .pricing-cta {
+      width: 100%; padding: 13px; border-radius: 999px; border: none;
+      font-family: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .pricing-cta:disabled { opacity: 0.65; cursor: default; }
+    .pricing-cta-free {
+      background: var(--surface2); color: var(--text2); border: 1px solid var(--border);
+    }
+    .pricing-cta-vip {
+      background: #fff; color: var(--accent-deep);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    .pricing-cta-vip:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+
+    /* 支付面板（预留支付宝 AI 支付） */
+    .pay-panel {
+      margin-top: 20px; padding: 20px; border-radius: 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      text-align: center;
+    }
+    .pay-panel[hidden] { display: none !important; }
+    .pay-panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .pay-panel-head h4 { font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+    .pay-back {
+      background: none; border: none; color: var(--accent-text);
+      font-family: inherit; font-size: 0.78rem; cursor: pointer; font-weight: 500;
+    }
+    .pay-amount {
+      font-size: 2rem; font-weight: 800; color: var(--accent-text); margin-bottom: 14px;
+    }
+    .pay-methods {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 16px;
+    }
+    .pay-method {
+      padding: 8px 18px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--surface); font-family: inherit; font-size: 0.8rem;
+      font-weight: 500; color: var(--text2); cursor: pointer; transition: 0.15s;
+    }
+    .pay-method.active { border-color: #1677FF; color: #1677FF; background: #EFF6FF; }
+    .pay-method:disabled { opacity: 0.45; cursor: not-allowed; }
+    .pay-qr-box {
+      width: 180px; height: 180px; margin: 0 auto 12px;
+      background: #fff; border-radius: 12px; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .pay-qr-box img { width: 100%; height: 100%; object-fit: contain; }
+    .pay-qr-placeholder {
+      font-size: 3rem; color: #1677FF; opacity: 0.6;
+    }
+    .pay-hint { font-size: 0.75rem; color: var(--text3); line-height: 1.5; }
+    .pay-demo {
+      margin-top: 12px; padding: 8px 16px; border-radius: 999px;
+      border: 1px dashed var(--border); background: transparent;
+      font-family: inherit; font-size: 0.72rem; color: var(--text3); cursor: pointer;
+    }
+    .pay-demo:hover { border-color: var(--accent); color: var(--accent-text); }
+    .pricing-footnote {
+      text-align: center; font-size: 0.72rem; color: var(--text3);
+      margin-top: 16px; line-height: 1.5;
+    }
+
     .modal-close {
       margin-top: 14px; padding: 9px 24px; font-family: inherit;
       background: var(--surface2); border: 1px solid var(--border); color: var(--text);
@@ -502,16 +813,6 @@
     }
     .card-deco { width: 60px; height: 3px; background: var(--accent-grad); margin-bottom: 20px; border-radius: 2px; }
     .card-title { font-size: 26px; font-weight: 700; line-height: 1.4; margin-bottom: 10px; }
-    .modal-vip .coin-balance {
-      font-size: 0.9rem; color: var(--text); margin-bottom: 16px;
-      padding: 12px; background: var(--accent-light); border-radius: var(--radius-sm);
-    }
-    .modal-vip .coin-balance strong { font-size: 1.4rem; color: var(--accent-text); }
-    .vip-perks {
-      text-align: left; list-style: none; margin-bottom: 18px;
-      font-size: 0.82rem; color: var(--text2); line-height: 1.8;
-    }
-    .vip-perks li::before { content: '✓ '; color: var(--accent-text); font-weight: 700; }
     .card-subtitle { font-size: 15px; color: #60A5FA; margin-bottom: 20px; }
     .card-progress-wrap { margin-bottom: 24px; }
     .card-progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
@@ -525,15 +826,19 @@
 
     /* 反馈悬浮按钮 */
     .feedback-fab {
-      position: fixed; right: 22px; bottom: 22px; z-index: 130;
-      width: 52px; height: 52px; border-radius: 50%; border: none;
-      background: linear-gradient(135deg, #D97706, #B45309);
-      color: #fff; font-size: 1.35rem; cursor: pointer;
-      box-shadow: 0 4px 18px rgba(217,119,6,0.45);
-      transition: transform 0.15s, box-shadow 0.15s;
-      display: flex; align-items: center; justify-content: center;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 16px; border-radius: 999px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(12px);
+      color: var(--text2); font-family: inherit; font-size: 0.78rem; font-weight: 500;
+      cursor: pointer; box-shadow: var(--shadow-lg);
+      transition: transform 0.15s, border-color 0.15s, color 0.15s;
     }
-    .feedback-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(217,119,6,0.55); }
+    .feedback-fab:hover {
+      transform: translateY(-2px); border-color: var(--accent);
+      color: var(--accent-text); box-shadow: 0 4px 20px rgba(59,130,246,0.18);
+    }
+    .feedback-fab-icon { font-size: 1rem; line-height: 1; }
     .feedback-modal { max-width: 400px; text-align: left; }
     .feedback-modal h3 { text-align: center; margin-bottom: 4px; }
     .feedback-modal .modal-desc { text-align: center; font-size: 0.8rem; color: var(--text2); margin-bottom: 16px; }
@@ -548,12 +853,40 @@
     .feedback-field textarea { min-height: 100px; }
     .feedback-field textarea:focus,
     .feedback-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-    .feedback-actions { display: flex; gap: 10px; margin-top: 6px; }
-    .feedback-actions .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
+    .feedback-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .feedback-actions .btn,
     .feedback-actions .btn-cancel {
-      background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
-      border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-weight: 500;
+      flex: 1; min-height: 42px; font-size: 0.85rem; font-weight: 600;
+      border-radius: var(--radius-sm); cursor: pointer; font-family: inherit;
+      transition: 0.15s;
     }
+    .feedback-actions .btn-cancel {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text2);
+    }
+    .feedback-actions .btn-cancel:hover { border-color: var(--accent); color: var(--accent-text); }
+
+    /* 登录注册 */
+    .auth-modal { max-width: 380px; text-align: left; padding: 24px; }
+    .auth-modal .modal-close { margin-top: 12px; width: 100%; }
+    .auth-tabs {
+      display: flex; gap: 4px; margin-bottom: 20px; padding: 4px;
+      background: var(--surface2); border-radius: 999px; border: 1px solid var(--border);
+    }
+    .auth-tab {
+      flex: 1; padding: 8px; border: none; border-radius: 999px;
+      font-family: inherit; font-size: 0.85rem; font-weight: 500;
+      background: transparent; color: var(--text2); cursor: pointer; transition: 0.15s;
+    }
+    .auth-tab.active {
+      background: var(--surface); color: var(--ink); font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .auth-error {
+      font-size: 0.78rem; color: #DC2626; margin-bottom: 10px;
+      padding: 8px 10px; background: #FEF2F2; border-radius: 8px;
+    }
+    .auth-error[hidden] { display: none !important; }
+    .auth-hint { font-size: 0.72rem; color: var(--text3); margin-top: 12px; text-align: center; line-height: 1.5; }
 
     /* 本地服务提示（file:// 直接打开时） */
     .local-server-banner {
@@ -582,11 +915,21 @@
     @media (max-width: 640px) {
       .topbar-inner { flex-wrap: wrap; padding: 10px 14px; }
       .topbar-nav { order: 3; width: 100%; justify-content: center; }
-      .coin-badge { display: none; }
+      .user-meta { max-width: 72px; }
+      .user-status { display: none; }
+      .btn-vip { padding: 7px 12px; font-size: 0.75rem; }
       .search-pill { flex-wrap: wrap; border-radius: var(--radius); padding: 10px; }
       .search-pill .url-input { width: 100%; padding: 10px 8px; }
       .search-btn { width: 100%; border-radius: var(--radius-sm); }
       .landing-hero { padding: 32px 0 24px; }
+      .results-panel { padding: 24px 0 8px; }
+      .results-header { margin-bottom: 18px; padding-bottom: 14px; }
+      .float-dock { right: 14px; bottom: 14px; }
+      .pwa-banner { max-width: calc(100vw - 28px); }
+      .modal-pricing { border-radius: 16px; }
+      .pricing-header { padding: 24px 20px 16px; }
+      .pricing-body { padding: 16px 16px 20px; }
+      .pricing-card { min-height: auto; padding: 20px 18px; }
     }
   </style>
 </head>
@@ -609,31 +952,113 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- PWA 添加到桌面引导 -->
-  <div class="pwa-banner" id="pwaBanner" hidden>
-    <p>📱 添加到主屏幕，下次一键打开</p>
-    <button type="button" class="pwa-close" id="pwaClose" aria-label="关闭">×</button>
+  <!-- 右下角：PWA 引导 + 反馈 -->
+  <div class="float-dock" id="floatDock">
+    <div class="pwa-banner" id="pwaBanner" hidden>
+      <p>📱 添加到主屏幕，下次一键打开</p>
+      <button type="button" class="pwa-close" id="pwaClose" aria-label="关闭">×</button>
+    </div>
+    <button type="button" id="feedbackFab" class="feedback-fab" title="反馈建议">
+      <span class="feedback-fab-icon">💬</span><span>反馈</span>
+    </button>
   </div>
 
   <div class="modal-overlay" id="vipModal">
-    <div class="modal modal-vip">
-      <h3>⭐ 升级会员</h3>
-      <p>充值自律币，解锁更多学习规划能力</p>
-      <div class="coin-balance">当前余额：<strong id="coinBalance">5</strong> 自律币</div>
-      <ul class="vip-perks">
-        <li>无限次课程规划（免费用户同样可用）</li>
-        <li>高清打卡卡片模板</li>
-        <li>多课程同步管理</li>
-        <li>优先体验新功能</li>
-      </ul>
-      <img class="modal-qr" id="vipQr" src="" alt="充值二维码">
-      <p style="font-size:0.75rem;color:var(--text3);margin-top:12px">扫码充值自律币 · 支持微信</p>
-      <br><button class="modal-close" id="modalClose">关闭</button>
+    <div class="modal modal-pricing">
+      <button type="button" class="pricing-close" id="modalClose" aria-label="关闭">×</button>
+      <div class="pricing-header">
+        <h2>选择适合你的学习规划方案</h2>
+        <p>免费版每月可规划 3 次，VIP 无限次规划并解锁全部高级功能</p>
+        <div class="pricing-user-pill" id="pricingUserStatus">
+          当前方案：<strong id="pricingPlanLabel">免费版</strong>
+        </div>
+      </div>
+      <div class="pricing-body">
+        <div class="pricing-cards" id="pricingCards">
+          <div class="pricing-card pricing-card-free">
+            <h3>免费版</h3>
+            <p class="pricing-card-desc">体验课表规划核心功能</p>
+            <div class="pricing-price">
+              <span class="currency">¥</span><span class="amount">0</span><span class="period">/ 月</span>
+            </div>
+            <ul class="pricing-features">
+              <li>每月 3 次课程规划</li>
+              <li>智能分 P 时长解析</li>
+              <li>每日学习日程切分</li>
+              <li>本地进度保存与打卡</li>
+              <li>基础打卡卡片</li>
+            </ul>
+            <button type="button" class="pricing-cta pricing-cta-free" id="freePlanBtn" disabled>当前方案</button>
+          </div>
+          <div class="pricing-card pricing-card-vip">
+            <span class="pricing-badge">🔥 推荐</span>
+            <h3>VIP 高级版</h3>
+            <p class="pricing-card-desc">无限规划，解锁全部功能</p>
+            <div class="pricing-price">
+              <span class="currency">¥</span><span class="amount" id="vipPriceAmount">9.9</span><span class="period" id="vipPricePeriod">/ 月</span>
+              <span class="pricing-promo" id="vipPromoTag">限时优惠</span>
+            </div>
+            <ul class="pricing-features">
+              <li>无限次课程规划</li>
+              <li>高清精美打卡卡片模板</li>
+              <li>多课程同步管理</li>
+              <li>课表链接一键分享</li>
+              <li>优先体验新功能</li>
+            </ul>
+            <button type="button" class="pricing-cta pricing-cta-vip" id="vipPayBtn">开通 VIP</button>
+          </div>
+        </div>
+
+        <div class="pay-panel" id="payPanel" hidden>
+          <div class="pay-panel-head">
+            <h4>支付宝扫码支付</h4>
+            <button type="button" class="pay-back" id="payBackBtn">← 返回方案</button>
+          </div>
+          <div class="pay-amount" id="payAmount">¥9.9</div>
+          <div class="pay-methods">
+            <button type="button" class="pay-method active" data-pay="alipay">支付宝</button>
+            <button type="button" class="pay-method" disabled title="即将上线">微信支付</button>
+          </div>
+          <div class="pay-qr-box" id="payQrBox">
+            <div class="pay-qr-placeholder" id="payQrPlaceholder">支</div>
+            <img id="payQr" alt="支付宝收款码" hidden>
+          </div>
+          <p class="pay-hint" id="payHint">请使用支付宝扫码完成支付<br>接入支付宝开放平台后，此处将自动生成订单二维码</p>
+          <button type="button" class="pay-demo" id="payDemoBtn">开发测试：模拟支付成功</button>
+        </div>
+
+        <p class="pricing-footnote">支付即表示同意服务条款 · 支持 7 天无理由退款（未使用高级功能）</p>
+      </div>
     </div>
   </div>
 
-  <!-- 用户反馈 -->
-  <button type="button" id="feedbackFab" class="feedback-fab" title="反馈建议">💬</button>
+  <div class="modal-overlay" id="authModal">
+    <div class="modal auth-modal">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" data-auth-tab="login">登录</button>
+        <button type="button" class="auth-tab" data-auth-tab="register">注册</button>
+      </div>
+      <form id="authForm">
+        <div class="feedback-field">
+          <label for="authUsername">用户名</label>
+          <input type="text" id="authUsername" autocomplete="username" placeholder="请输入用户名" required>
+        </div>
+        <div class="feedback-field">
+          <label for="authPassword">密码</label>
+          <input type="password" id="authPassword" autocomplete="current-password" placeholder="请输入密码" required>
+        </div>
+        <div class="feedback-field" id="authConfirmWrap" hidden>
+          <label for="authPasswordConfirm">确认密码</label>
+          <input type="password" id="authPasswordConfirm" autocomplete="new-password" placeholder="再次输入密码">
+        </div>
+        <p class="auth-error" id="authError" hidden></p>
+        <button type="submit" class="btn btn-primary" id="authSubmit" style="width:100%;margin-top:4px">登录</button>
+      </form>
+      <p class="auth-hint">登录后可规划 · 免费 3 次/月 · VIP 无限<br>密码至少 6 位，服务端加密存储</p>
+      <button type="button" class="modal-close" id="authClose">取消</button>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="feedbackModal">
     <div class="modal feedback-modal">
       <h3>反馈建议</h3>
@@ -669,8 +1094,18 @@
         <button class="nav-tab" data-page="mine">我的<span class="badge" id="mineBadge" hidden>0</span></button>
       </nav>
       <div class="topbar-right">
-        <span class="coin-badge" id="coinBadge">🪙 5 自律币</span>
-        <button type="button" id="vipBtnTop" class="btn-vip">⭐ 升级会员</button>
+        <div class="user-area guest" id="userArea">
+          <div class="user-chip">
+            <span class="user-avatar" id="userAvatar">👤</span>
+            <div class="user-meta">
+              <span class="user-name" id="userName">访客</span>
+              <span class="user-status" id="userStatus">登录后开始规划</span>
+            </div>
+          </div>
+          <button type="button" id="authBtnTop" class="btn-auth-primary">登录</button>
+          <button type="button" id="logoutBtnTop" class="btn-auth-ghost" hidden>退出</button>
+        </div>
+        <button type="button" id="vipBtnTop" class="btn-vip subtle">⭐ VIP</button>
       </div>
     </div>
   </header>
@@ -679,7 +1114,7 @@
   <div class="page active" id="pagePlan">
     <div class="wrap">
       <section class="landing-hero" id="landingHero">
-        <div class="status-badge"><span class="dot"></span> 支持 B 站全站课程，免费开始使用</div>
+        <div class="status-badge"><span class="dot"></span> 登录后规划 · 免费 3 次/月 · VIP 无限</div>
         <h1>万能课表规划器，<span class="hl">一键生成</span></h1>
         <p class="landing-sub">粘贴 B 站课程链接，智能解析分 P 时长，按每日学习量自动切分日程<br>支持 bilibili.com · b23.tv 分享文字</p>
 
@@ -709,12 +1144,12 @@
         </div>
       </section>
 
-      <section id="resultsSection" hidden>
-        <div id="expiryBanner" class="expiry-banner card" hidden>
-          <p>⚠️ 数据已过期（超过7天），建议重新规划刷新课程</p>
-          <button type="button" id="expiryReplanBtn" class="btn btn-primary">重新规划</button>
+      <section id="resultsSection" class="results-panel" hidden>
+        <div class="results-header">
+          <button type="button" id="backHomeBtn" class="btn-back-home">← 返回首页</button>
+          <span class="results-header-label">我的课表</span>
         </div>
-
+        <div class="results-inner">
         <div class="result-grid">
           <aside class="result-side">
             <div class="course-preview card" id="coursePreview"></div>
@@ -769,8 +1204,9 @@
         </div>
 
         <div class="support-banner">
-          <p>升级会员，用 <strong>自律币</strong> 解锁打卡模板与更多高级功能 🪙</p>
-          <button type="button" id="vipBtn" class="btn btn-accent">⭐ 升级会员</button>
+          <p>升级 <strong>VIP ¥9.9/月</strong>，无限次规划 + 高清打卡与多课程管理</p>
+          <button type="button" id="vipBtn" class="btn btn-accent">⭐ 查看方案</button>
+        </div>
         </div>
       </section>
 
@@ -804,8 +1240,21 @@
   <script>
     const CONFIG = {
       VIP_QR_URL: 'https://via.placeholder.com/200x200/2563EB/FFFFFF?text=自律币充值',
-      // ⚠️ 部署前替换为你自己的 Formspree 表单 ID：https://formspree.io/ → 创建表单 → 复制 endpoint
-      FORMSPREE_URL: 'https://formspree.io/f/yourFormID',
+      // 用户反馈走本地 API（保存到 data/feedback.json）
+      FEEDBACK_API: '/api/feedback',
+      /** 定价方案（仅月付） */
+      PRICING: { price: 9.9, period: '月', days: 30 },
+      /** 免费用户每月规划次数上限 */
+      FREE_PLAN_LIMIT: 3,
+      USAGE_KEY: 'bili-planner-usage',
+      /** 登录会话（Token 由服务端签发，前端不存密码） */
+      AUTH_SESSION_KEY: 'bili-planner-session',
+      AUTH_API: '/api/auth',
+      /** VIP 会员状态 localStorage key */
+      VIP_KEY: 'bili-planner-vip',
+      /** 支付宝收款码 / 预下单 API（接入支付宝 AI 支付后填写） */
+      ALIPAY_QR_URL: '',
+      PAY_API: '/api/pay/create',
       COIN_KEY: 'bili-planner-coins',
       DEFAULT_COINS: 5,
       /** 自有后端代理路径（Vercel 部署后自动生效） */
@@ -827,12 +1276,168 @@
       LOCAL_SERVER: 'http://127.0.0.1:3000'
     };
 
+    /** API 根地址：file:// 下走 LOCAL_SERVER，否则同源 */
+    function getApiBase() {
+      if (location.protocol === 'file:') return CONFIG.LOCAL_SERVER;
+      return '';
+    }
+
+    function authApiUrl(action) {
+      return `${getApiBase()}${CONFIG.AUTH_API}?action=${action}`;
+    }
+
     let courseData = null, planData = [], progress = { completedDays: [] };
     let isLoading = false, loadTimer = null, currentDayIdx = 0, fetchGeneration = 0;
     const memCache = new Map();
     let lastParsedHint = '';
+    let authMode = 'login';
 
     const $ = id => document.getElementById(id);
+
+    // ===== 登录 / 注册（服务端校验，密码哈希存储） =====
+    function getSession() {
+      try {
+        const s = JSON.parse(localStorage.getItem(CONFIG.AUTH_SESSION_KEY) || 'null');
+        if (!s?.token || !s?.username) return null;
+        if (s.expiresAt && Date.now() > s.expiresAt) return null;
+        return s;
+      } catch { return null; }
+    }
+    function saveSession(data) {
+      localStorage.setItem(CONFIG.AUTH_SESSION_KEY, JSON.stringify(data));
+    }
+    function isLoggedIn() { return !!getSession(); }
+    function isAdmin() {
+      return getSession()?.role === 'admin';
+    }
+    function isUnlimited() { return isAdmin() || isVip(); }
+
+    function normalizeUsername(name) {
+      return String(name || '').trim().toLowerCase();
+    }
+
+    async function authApi(action, body) {
+      const opts = { method: body ? 'POST' : 'GET', headers: {} };
+      if (body) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+      } else {
+        const token = getSession()?.token;
+        if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+      }
+      let res;
+      try {
+        res = await fetch(authApiUrl(action), opts);
+      } catch {
+        throw new Error('无法连接认证服务，请双击运行 启动.bat');
+      }
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch {
+        throw new Error('认证服务未就绪：请关闭所有旧窗口，重新双击 启动.bat，并访问 http://127.0.0.1:3000');
+      }
+      if (json.code !== 0) throw new Error(json.message || '认证失败');
+      return json.data;
+    }
+
+    async function loginUser(username, password) {
+      const data = await authApi('login', { username, password });
+      saveSession({
+        token: data.token,
+        username: data.username,
+        role: data.role,
+        expiresAt: data.expiresAt
+      });
+      updateMemberDisplay();
+      return data;
+    }
+
+    async function registerUser(username, password, confirm) {
+      username = normalizeUsername(username);
+      if (username.length < 2) throw new Error('用户名至少 2 个字符');
+      if (password.length < 6) throw new Error('密码至少 6 位');
+      if (password !== confirm) throw new Error('两次密码不一致');
+      const data = await authApi('register', { username, password });
+      saveSession({
+        token: data.token,
+        username: data.username,
+        role: data.role,
+        expiresAt: data.expiresAt
+      });
+      updateMemberDisplay();
+      return data;
+    }
+
+    async function verifySessionWithServer() {
+      const s = getSession();
+      if (!s?.token) return false;
+      try {
+        const data = await authApi('me');
+        saveSession({
+          token: s.token,
+          username: data.username,
+          role: data.role,
+          expiresAt: data.expiresAt
+        });
+        updateMemberDisplay();
+        return true;
+      } catch {
+        logoutUser();
+        return false;
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem(CONFIG.AUTH_SESSION_KEY);
+      updateMemberDisplay();
+      showToast('已退出登录');
+    }
+    function openAuthModal(mode) {
+      authMode = mode || 'login';
+      setAuthTab(authMode);
+      $('authError').hidden = true;
+      $('authForm').reset();
+      $('authModal').classList.add('active');
+      $('authUsername').focus();
+    }
+    function closeAuthModal() {
+      $('authModal').classList.remove('active');
+    }
+    function setAuthTab(mode) {
+      authMode = mode;
+      document.querySelectorAll('.auth-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.authTab === mode);
+      });
+      $('authConfirmWrap').hidden = mode !== 'register';
+      $('authSubmit').textContent = mode === 'register' ? '注册并登录' : '登录';
+      $('authPassword').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+    }
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const username = $('authUsername').value;
+      const password = $('authPassword').value;
+      const errEl = $('authError');
+      const btn = $('authSubmit');
+      errEl.hidden = true;
+      btn.disabled = true;
+      btn.textContent = authMode === 'register' ? '注册中…' : '登录中…';
+      try {
+        if (authMode === 'register') {
+          await registerUser(username, password, $('authPasswordConfirm').value);
+          showToast('注册成功，欢迎 ' + normalizeUsername(username));
+        } else {
+          await loginUser(username, password);
+          showToast('登录成功');
+        }
+        closeAuthModal();
+      } catch (err) {
+        errEl.textContent = err.message || '操作失败';
+        errEl.hidden = false;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = authMode === 'register' ? '注册并登录' : '登录';
+      }
+    }
 
     function getCoins() {
       try {
@@ -840,10 +1445,236 @@
         return Number.isFinite(n) && n >= 0 ? n : CONFIG.DEFAULT_COINS;
       } catch { return CONFIG.DEFAULT_COINS; }
     }
+
+    /** VIP 会员状态 */
+    function getVipInfo() {
+      try {
+        const raw = localStorage.getItem(CONFIG.VIP_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data?.expireAt) return null;
+        if (Date.now() > data.expireAt) {
+          localStorage.removeItem(CONFIG.VIP_KEY);
+          return null;
+        }
+        return data;
+      } catch { return null; }
+    }
+    function isVip() { return !!getVipInfo(); }
+
+    /** 免费用户本月规划用量（按账号分别计数） */
+    function getCurrentMonth() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+    function getUsageStore() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(CONFIG.USAGE_KEY) || '{}');
+        // 忽略旧版全局计数 { month, count }，避免新账号继承已用完状态
+        if (raw.month && typeof raw.count === 'number') {
+          const userKeys = Object.keys(raw).filter(k => k !== 'month' && k !== 'count');
+          if (userKeys.length === 0) return {};
+        }
+        return raw;
+      } catch { return {}; }
+    }
+    function saveUsageStore(store) {
+      localStorage.setItem(CONFIG.USAGE_KEY, JSON.stringify(store));
+    }
+    function getUsageRecord() {
+      const session = getSession();
+      const month = getCurrentMonth();
+      if (!session?.username) return { month, count: 0 };
+      const store = getUsageStore();
+      const userRec = store[session.username];
+      if (!userRec || userRec.month !== month) return { month, count: 0 };
+      return { month, count: userRec.count || 0 };
+    }
+    function getFreePlansRemaining() {
+      if (isUnlimited()) return Infinity;
+      return Math.max(0, CONFIG.FREE_PLAN_LIMIT - getUsageRecord().count);
+    }
+    function canPlanFree() {
+      return isUnlimited() || getUsageRecord().count < CONFIG.FREE_PLAN_LIMIT;
+    }
+    function recordPlanUsage() {
+      if (isUnlimited()) return;
+      const session = getSession();
+      if (!session?.username) return;
+      const store = getUsageStore();
+      const rec = getUsageRecord();
+      rec.count += 1;
+      store[session.username] = rec;
+      saveUsageStore(store);
+      updateMemberDisplay();
+    }
+    async function checkPlanQuota() {
+      if (!isLoggedIn()) {
+        showToast('请先登录后再规划课程');
+        openAuthModal('login');
+        return false;
+      }
+      if (!(await verifySessionWithServer())) {
+        showToast('登录已失效，请重新登录');
+        openAuthModal('login');
+        return false;
+      }
+      if (canPlanFree()) return true;
+      showToast(`免费版本月规划次数已用完（${CONFIG.FREE_PLAN_LIMIT} 次/月），升级 VIP 可无限使用`);
+      openVipModal();
+      return false;
+    }
+
+    function setVip(days) {
+      const expireAt = Date.now() + days * 86400000;
+      localStorage.setItem(CONFIG.VIP_KEY, JSON.stringify({
+        expireAt, plan: 'monthly', activatedAt: Date.now()
+      }));
+      updateMemberDisplay();
+    }
+    function formatVipExpiry(ts) {
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function updateMemberDisplay() {
+      const session = getSession();
+      const vip = getVipInfo();
+      const userArea = $('userArea');
+      const userAvatar = $('userAvatar');
+      const userName = $('userName');
+      const userStatus = $('userStatus');
+      const authBtn = $('authBtnTop');
+      const logoutBtn = $('logoutBtnTop');
+      const vipBtn = $('vipBtnTop');
+      const planLabel = $('pricingPlanLabel');
+      const userPill = $('pricingUserStatus');
+      const freeBtn = $('freePlanBtn');
+      const payBtn = $('vipPayBtn');
+
+      userArea?.classList.remove('guest', 'free', 'premium', 'logged-in');
+
+      if (!session) {
+        userArea?.classList.add('guest');
+        if (userAvatar) userAvatar.textContent = '👤';
+        if (userName) userName.textContent = '访客';
+        if (userStatus) userStatus.textContent = '免费 3 次/月';
+        if (authBtn) { authBtn.hidden = false; authBtn.textContent = '登录'; }
+        if (logoutBtn) logoutBtn.hidden = true;
+        if (vipBtn) { vipBtn.hidden = false; vipBtn.classList.add('subtle'); vipBtn.textContent = '⭐ VIP'; }
+        if (planLabel) planLabel.textContent = '未登录';
+        if (userPill) userPill.classList.remove('vip');
+        if (freeBtn) { freeBtn.disabled = true; freeBtn.textContent = '需登录后使用'; }
+        if (payBtn) payBtn.textContent = '开通 VIP';
+        return;
+      }
+
+      userArea?.classList.add('logged-in');
+      const initial = session.username.slice(0, 1).toUpperCase();
+      if (userAvatar) userAvatar.textContent = initial;
+      if (authBtn) authBtn.hidden = true;
+      if (logoutBtn) logoutBtn.hidden = false;
+
+      if (isAdmin()) {
+        userArea?.classList.add('premium');
+        if (userName) userName.textContent = session.username;
+        if (userStatus) userStatus.textContent = '⭐ 无限次规划';
+        if (vipBtn) vipBtn.hidden = true;
+        if (planLabel) planLabel.textContent = `${session.username} · 无限次规划`;
+        if (userPill) userPill.classList.add('vip');
+        if (freeBtn) { freeBtn.disabled = true; freeBtn.textContent = '当前方案 · 无限'; }
+        if (payBtn) payBtn.textContent = '已是 VIP';
+        return;
+      }
+
+      if (vipBtn) { vipBtn.hidden = false; vipBtn.classList.remove('subtle'); }
+
+      if (vip) {
+        userArea?.classList.add('premium');
+        const exp = formatVipExpiry(vip.expireAt);
+        if (userName) userName.textContent = session.username;
+        if (userStatus) userStatus.textContent = `⭐ VIP 至 ${exp}`;
+        if (vipBtn) vipBtn.textContent = '续费 VIP';
+        if (planLabel) planLabel.textContent = `${session.username} · VIP 至 ${exp}`;
+        if (userPill) userPill.classList.add('vip');
+        if (freeBtn) { freeBtn.disabled = true; freeBtn.textContent = '免费版'; }
+        if (payBtn) payBtn.textContent = '续费 VIP';
+      } else {
+        userArea?.classList.add('free');
+        const left = getFreePlansRemaining();
+        if (userName) userName.textContent = session.username;
+        if (userStatus) userStatus.textContent = left > 0 ? `本月剩 ${left} 次` : '本月已用完';
+        if (vipBtn) vipBtn.textContent = '⭐ 升级 VIP';
+        if (planLabel) planLabel.textContent = left > 0
+          ? `${session.username} · 本月还可规划 ${left} 次`
+          : `${session.username} · 本月次数已用完`;
+        if (userPill) userPill.classList.remove('vip');
+        if (freeBtn) {
+          freeBtn.disabled = true;
+          freeBtn.textContent = left > 0 ? `当前方案 · 剩 ${left} 次` : '本月次数已用完';
+        }
+        if (payBtn) payBtn.textContent = '开通 VIP';
+      }
+    }
+    function updatePricingUI() {
+      const plan = CONFIG.PRICING;
+      if ($('vipPriceAmount')) $('vipPriceAmount').textContent = plan.price;
+      if ($('vipPricePeriod')) $('vipPricePeriod').textContent = `/ ${plan.period}`;
+    }
+    function showPayPanel() {
+      const plan = CONFIG.PRICING;
+      $('payAmount').textContent = `¥${plan.price}`;
+      $('pricingCards').hidden = true;
+      $('payPanel').hidden = false;
+      const qr = $('payQr'), ph = $('payQrPlaceholder');
+      if (CONFIG.ALIPAY_QR_URL) {
+        qr.src = CONFIG.ALIPAY_QR_URL;
+        qr.hidden = false;
+        ph.hidden = true;
+        $('payHint').innerHTML = '请使用支付宝扫码完成支付<br>支付成功后自动开通 VIP';
+      } else {
+        qr.hidden = true;
+        ph.hidden = false;
+        $('payHint').innerHTML = '请使用支付宝扫码完成支付<br>接入支付宝开放平台后，此处将自动生成订单二维码';
+        createPayOrder(plan);
+      }
+    }
+    function hidePayPanel() {
+      $('payPanel').hidden = true;
+      $('pricingCards').hidden = false;
+    }
+    /** 预创建支付订单（接入支付宝 AI 支付时实现后端） */
+    async function createPayOrder(plan) {
+      try {
+        const res = await fetch(CONFIG.PAY_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: 'monthly', amount: plan.price })
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.qrUrl) {
+          $('payQr').src = json.qrUrl;
+          $('payQr').hidden = false;
+          $('payQrPlaceholder').hidden = true;
+        }
+      } catch { /* 后端未部署时静默 */ }
+    }
+    function onPaySuccess() {
+      const plan = CONFIG.PRICING;
+      const vip = getVipInfo();
+      const base = vip && vip.expireAt > Date.now() ? vip.expireAt : Date.now();
+      const expireAt = base + plan.days * 86400000;
+      localStorage.setItem(CONFIG.VIP_KEY, JSON.stringify({
+        expireAt, plan: 'monthly', activatedAt: Date.now()
+      }));
+      hidePayPanel();
+      updateMemberDisplay();
+      $('vipModal').classList.remove('active');
+      showToast('🎉 VIP 开通成功！');
+    }
+
     function updateCoinDisplay() {
-      const n = getCoins();
-      if ($('coinBadge')) $('coinBadge').textContent = '🪙 ' + n + ' 自律币';
-      if ($('coinBalance')) $('coinBalance').textContent = n;
+      updateMemberDisplay();
     }
 
     function showLanding() {
@@ -932,10 +1763,10 @@
     }
 
     /** 显示「继续上次」提示（不自动跳转） */
-    function showContinueBanner(cache, expired) {
+    function showContinueBanner(cache) {
       if (isContinueDismissed(cache.bvid)) return;
       const title = (cache.title || cache.bvid || '未知课程').slice(0, 30);
-      $('continueTitle').textContent = title + (title.length < (cache.title || '').length ? '…' : '') + (expired ? '（可能已过期）' : '');
+      $('continueTitle').textContent = title + (title.length < (cache.title || '').length ? '…' : '');
       $('continueBanner').hidden = false;
       $('continueBtn').onclick = () => {
         $('continueBanner').hidden = true;
@@ -945,7 +1776,7 @@
     }
 
     /** 从进度记录中的 planSnapshot 恢复（无需请求 API） */
-    function restoreFromProgressSnapshot(bvid, saved, expired) {
+    function restoreFromProgressSnapshot(bvid, saved) {
       const snap = saved.planSnapshot;
       courseData = {
         bvid,
@@ -960,7 +1791,6 @@
       dailyMinutes.value = snap.dailyMinutes || saved.dailyMin || 45;
       progress = getProgress(bvid);
       urlInput.value = 'https://www.bilibili.com/video/' + bvid;
-      $('expiryBanner').hidden = !expired;
       renderAll(+dailyMinutes.value);
       scrollToResults();
       showToast('📂 已恢复本地课表');
@@ -982,16 +1812,14 @@
 
       // 1. 进度里附带的完整课表快照（「我的」里最可靠）
       if (saved?.planSnapshot?.plan?.length) {
-        const expired = saved.planSnapshot.generatedAt
-          ? isPlanCacheExpired(saved.planSnapshot) : false;
-        restoreFromProgressSnapshot(bvid, saved, expired);
+        restoreFromProgressSnapshot(bvid, saved);
         return;
       }
 
       // 2. 全局规划缓存（与 continue 横幅同源）
       const cache = planCache || loadPlanCache();
       if (cache && bvidMatch(cache.bvid, bvid) && cache.plan?.length) {
-        restoreFromPlanCache(cache, isPlanCacheExpired(cache));
+        restoreFromPlanCache(cache);
         return;
       }
 
@@ -1000,7 +1828,7 @@
     }
 
     /** 从规划缓存对象恢复 */
-    function restoreFromPlanCache(cache, expired) {
+    function restoreFromPlanCache(cache) {
       courseData = {
         bvid: cache.bvid,
         title: cache.title,
@@ -1014,10 +1842,44 @@
       dailyMinutes.value = cache.dailyMinutes || 45;
       progress = getProgress(cache.bvid);
       urlInput.value = 'https://www.bilibili.com/video/' + cache.bvid;
-      $('expiryBanner').hidden = !expired;
       renderAll(cache.dailyMinutes || 45);
       scrollToResults();
-      if (!expired) showToast('📂 已恢复上次规划');
+      showToast('📂 已恢复上次规划');
+    }
+
+    /** 返回首页（保留学习记录，不清空数据） */
+    function backToHome() {
+      $('resultsSection').hidden = true;
+      showLanding();
+      switchPage('plan');
+      const cache = loadPlanCache();
+      if (cache?.bvid && cache?.plan?.length) {
+        showContinueBanner(cache);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /** 删除「我的」中的课程记录 */
+    function deleteCourse(bvid) {
+      const all = loadAll();
+      const title = (all[bvid]?.title || bvid).slice(0, 24);
+      if (!confirm(`确定删除「${title}」的学习记录吗？`)) return;
+      delete all[bvid];
+      saveAll(all);
+      const cache = loadPlanCache();
+      if (cache && bvidMatch(cache.bvid, bvid)) {
+        try { localStorage.removeItem(CONFIG.PLAN_CACHE_KEY); } catch {}
+      }
+      updateMineBadge();
+      renderMine();
+      if (courseData && bvidMatch(courseData.bvid, bvid)) {
+        $('resultsSection').hidden = true;
+        showLanding();
+        courseData = null;
+        planData = [];
+        progress = { completedDays: [] };
+      }
+      showToast('已删除');
     }
 
     /** 更新分享 URL：?bvid=BVxxx&daily=45 */
@@ -1090,7 +1952,9 @@
       $('resultsSection').hidden = false;
       syncSideInputs();
       requestAnimationFrame(() => {
-        setTimeout(() => $('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+        const el = $('resultsSection');
+        const y = el.getBoundingClientRect().top + window.scrollY - 24;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
       });
     }
     function replan() {
@@ -1098,11 +1962,9 @@
       try { localStorage.removeItem(CONFIG.PLAN_CACHE_KEY); } catch {}
       clearShareUrl();
       resetResults();
-      $('expiryBanner').hidden = true;
       $('continueBanner').hidden = true;
       urlInput.value = '';
       $('parseHint').hidden = true;
-      showLanding();
       urlInput.focus();
       showToast('已清空，请输入新课程链接');
     }
@@ -1127,7 +1989,7 @@
       progress = getProgress(courseData.bvid);
       savePlanCache(dailyMin);
       updateShareUrl(courseData.bvid, dailyMin);
-      $('expiryBanner').hidden = true;
+      recordPlanUsage();
       renderAll(dailyMin);
       stopLoadAnim(true);
       scrollToResults();
@@ -1136,6 +1998,7 @@
     /** 通过 URL 参数 bvid 自动规划（分享链接打开） */
     async function startPlanningFromBvid(bvid, dailyMin) {
       if (isLoading) return;
+      if (!(await checkPlanQuota())) return;
       dailyMin = Math.max(10, Math.min(480, dailyMin || 45));
       dailyMinutes.value = dailyMin;
       urlInput.value = 'https://www.bilibili.com/video/' + bvid;
@@ -1263,6 +2126,7 @@
       if (location.protocol !== 'file:') return;
 
       CONFIG.API_PROXY = CONFIG.LOCAL_SERVER + '/api/bilibili';
+      CONFIG.AUTH_API = '/api/auth'; // 通过 getApiBase() 拼完整地址
 
       async function tryConnect() {
         try {
@@ -1279,7 +2143,7 @@
       }
 
       if (await tryConnect()) {
-        showToast('✅ 已连接本地服务');
+        showToast('✅ 已连接本地服务（请通过此页面登录）');
         return;
       }
 
@@ -1291,14 +2155,33 @@
       };
     }
 
+    /** 检测认证 API 是否可用（避免误开 HTML 文件或旧服务） */
+    async function checkAuthServiceReady() {
+      if (location.protocol === 'file:') return;
+      try {
+        const r = await fetch(`${getApiBase()}/api/health`, { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) throw new Error();
+        const probe = await fetch(authApiUrl('me'), {
+          headers: { Authorization: 'Bearer invalid' },
+          signal: AbortSignal.timeout(3000)
+        });
+        const text = await probe.text();
+        JSON.parse(text); // 必须是 JSON，不能是 index.html
+      } catch {
+        showToast('⚠️ 请关闭旧服务后重新运行 启动.bat，并用 http://127.0.0.1:3000 打开');
+      }
+    }
+
     /** 页面初始化：默认搜索页；分享链接仅预填；上次规划需手动点「继续」 */
     async function initApp() {
       await initLocalServer();
+      await checkAuthServiceReady();
       initInlineManifest();
       registerServiceWorker();
       initPwaBanner();
       updateMineBadge();
       updateCoinDisplay();
+      await verifySessionWithServer();
 
       // 始终先显示搜索落地页
       resetResults();
@@ -1320,7 +2203,7 @@
 
       const cache = loadPlanCache();
       if (cache?.bvid && cache.plan?.length) {
-        showContinueBanner(cache, isPlanCacheExpired(cache));
+        showContinueBanner(cache);
       }
     }
 
@@ -1944,10 +2827,15 @@
             </div>
           </div>
           <div class="mine-pct">${pct}%</div>
+          <button type="button" class="mine-delete" data-delete="${esc(bvid)}" title="删除">🗑</button>
         </div>`;
       }).join('') + '</div>';
 
       $('mineContent').querySelectorAll('.mine-card').forEach(card => {
+        card.querySelector('[data-delete]')?.addEventListener('click', e => {
+          e.stopPropagation();
+          deleteCourse(card.dataset.bvid);
+        });
         card.onclick = () => {
           openCourseFromHistory(card.dataset.bvid, +card.dataset.daily || 45);
         };
@@ -2020,6 +2908,7 @@
 
     async function startPlanning() {
       if (isLoading) return;
+      if (!(await checkPlanQuota())) return;
       const url = urlInput.value.trim();
       if (!url) { showToast('请输入课程链接'); return; }
 
@@ -2083,12 +2972,13 @@
     }
 
     function openVipModal() {
-      $('vipQr').src = CONFIG.VIP_QR_URL;
-      updateCoinDisplay();
+      hidePayPanel();
+      updatePricingUI();
+      updateMemberDisplay();
       $('vipModal').classList.add('active');
     }
 
-    // ===== 用户反馈（Formspree） =====
+    // ===== 用户反馈（服务端保存） =====
     function openFeedbackModal() {
       $('feedbackModal').classList.add('active');
       $('feedbackMessage').focus();
@@ -2106,24 +2996,29 @@
       btn.disabled = true;
       btn.textContent = '发送中…';
       try {
-        const res = await fetch(CONFIG.FORMSPREE_URL, {
+        const session = getSession();
+        const res = await fetch(`${getApiBase()}${CONFIG.FEEDBACK_API}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message,
-            contact: contact || '未填写',
-            _subject: 'B站课表规划器 - 用户反馈'
+            contact: contact || undefined,
+            username: session?.username
           })
         });
-        if (res.ok) {
-          showToast('感谢反馈！');
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.code === 0) {
+          showToast(data.message || '感谢反馈！');
           $('feedbackForm').reset();
           closeFeedbackModal();
         } else {
-          throw new Error('submit failed');
+          throw new Error(data.message || 'submit failed');
         }
-      } catch {
-        showToast('提交失败，请稍后重试');
+      } catch (err) {
+        const hint = location.protocol === 'file:'
+          ? '请先运行 启动.bat 后再提交'
+          : (err.message || '提交失败，请稍后重试');
+        showToast(hint);
       } finally {
         btn.disabled = false;
         btn.textContent = '发送反馈';
@@ -2154,11 +3049,24 @@
     urlInput.onpaste = () => setTimeout(() => showParseHint(urlInput.value), 50);
     $('genCardBtn').onclick = generateCard;
     $('replanBtn').onclick = replan;
-    $('expiryReplanBtn').onclick = replan;
+    $('backHomeBtn').onclick = backToHome;
     $('vipBtn').onclick = openVipModal;
     $('vipBtnTop').onclick = openVipModal;
-    $('modalClose').onclick = () => $('vipModal').classList.remove('active');
-    $('vipModal').onclick = e => { if (e.target === $('vipModal')) $('vipModal').classList.remove('active'); };
+    $('authBtnTop').onclick = () => openAuthModal('login');
+    $('logoutBtnTop').onclick = logoutUser;
+    $('authForm').onsubmit = handleAuthSubmit;
+    $('authClose').onclick = closeAuthModal;
+    $('authModal').onclick = e => { if (e.target === $('authModal')) closeAuthModal(); };
+    document.querySelectorAll('.auth-tab').forEach(t => {
+      t.onclick = () => { setAuthTab(t.dataset.authTab); $('authError').hidden = true; };
+    });
+    $('modalClose').onclick = () => { hidePayPanel(); $('vipModal').classList.remove('active'); };
+    $('vipModal').onclick = e => {
+      if (e.target === $('vipModal')) { hidePayPanel(); $('vipModal').classList.remove('active'); }
+    };
+    $('vipPayBtn').onclick = () => showPayPanel();
+    $('payBackBtn').onclick = hidePayPanel;
+    $('payDemoBtn').onclick = onPaySuccess;
     $('feedbackFab').onclick = openFeedbackModal;
     $('feedbackCancel').onclick = closeFeedbackModal;
     $('feedbackModal').onclick = e => { if (e.target === $('feedbackModal')) closeFeedbackModal(); };

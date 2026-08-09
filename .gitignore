@@ -4,6 +4,8 @@ p910.json
 
 # 部署
 .vercel/
+.env
+data/
 
 # 系统与编辑器
 .DS_Store
