@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-dvh bg-bg text-ink font-sans text-sm leading-normal antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 55% at 50% 0%, rgba(59, 130, 246, 0.16), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgba(37, 99, 235, 0.1), transparent 50%),
+      radial-gradient(ellipse 50% 40% at 100% 100%, rgba(37, 99, 235, 0.08), transparent 50%);
+  }
+}
+
+@layer components {
+  .btn-accent {
+    @apply inline-flex items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-px;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm;
+  }
+
+  .modal {
+    @apply w-full max-w-md rounded-[20px] bg-surface p-6 shadow-lg;
+  }
+}
+
+@keyframes resultsIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

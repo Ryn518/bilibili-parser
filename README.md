@@ -1,90 +1,88 @@
-# B站课表规划器
+# B站课表规划器 v2.0
 
-单文件 Web 应用 + 本地/Vercel 后端代理：粘贴 B 站课程链接，自动解析分 P 与时长，按每日学习时长生成学习计划。
+Next.js 全栈版：粘贴 B 站课程链接，自动解析分 P 与时长，按每日学习时长生成学习计划。
 
-## 本地使用（推荐，最简单）
+## 技术栈
 
-1. 安装 [Node.js](https://nodejs.org/)（LTS 版本，一路下一步即可）
-2. **双击 `启动.bat`**
-3. 浏览器会自动打开 **http://127.0.0.1:3000**
+- **Next.js 14** (App Router)
+- **React 18** + **TypeScript**
+- **Tailwind CSS**
+- **Vitest**（规划算法单元测试）
+- **Vercel** 部署
 
-关闭黑色命令行窗口 = 停止服务。
+## 快速开始
 
-或在终端执行：
+### 本地开发
+
+1. 安装 [Node.js](https://nodejs.org/) LTS
+2. 复制环境变量：`cp .env.example .env`（Windows 手动复制）
+3. 双击 **`启动.bat`** 或运行：
 
 ```bash
-cd d:\plan
-npm start
+npm install
+npm run dev
 ```
 
-> ⚠️ **不要**直接双击 `index.html`（`file://` 协议无法使用 API）。若误打开了，页面顶部会提示你运行 `启动.bat`。
+浏览器打开 http://127.0.0.1:3000
+
+### 生产构建
+
+```bash
+npm run build
+npm run start
+```
+
+### 测试
+
+```bash
+npm run test
+```
 
 ## 项目结构
 
 ```
 plan/
-├── index.html          # 前端
-├── server.js           # 本地服务器（静态页 + API 代理）
-├── 启动.bat            # 双击即可本地运行
-├── api/bilibili.js     # B 站 API 代理（本地与 Vercel 共用）
-├── vercel.json         # Vercel 部署配置
-└── package.json
+├── app/                 # Next.js 页面与 API Route Handlers
+├── components/          # React 组件
+├── hooks/               # 认证、UI 状态
+├── lib/                 # 规划算法、BVID 解析、服务端逻辑
+├── lib/ai/              # AI 模块预留（LLM / RAG）
+├── legacy/              # v1.2 旧版归档（index.html + server.js）
+├── data/                # 用户与反馈 JSON（gitignore）
+└── public/              # 静态资源、PWA manifest
 ```
 
-## 功能概览
+## API
 
-| 模块 | 说明 |
+| 路径 | 说明 |
 |------|------|
-| 链接解析 | 支持 BV / av / b23.tv 短链；可直接粘贴 B 站分享文案 |
-| 数据获取 | **优先自有后端** `/api/bilibili` → 失败自动降级公共 CORS 代理 |
-| 智能规划 | 按每日分钟切分；15% 弹性避免拆集；目录原名标注 |
-| 学习进度 | 每日打勾、localStorage 持久化、「我的」页汇总 |
-| 打卡卡片 | html2canvas 生成 PNG |
-| 用户反馈 | 右下角 💬 按钮 → Formspree 提交到邮箱 |
-| PWA | 内联 Manifest + Service Worker（需 https 部署） |
+| `GET /api/health` | 健康检查 |
+| `GET /api/bilibili?bvid=&type=course` | 完整课程数据 |
+| `POST /api/auth?action=login\|register` | 登录注册 |
+| `GET /api/auth?action=me` | 会话校验 |
+| `POST /api/feedback` | 用户反馈 |
 
-### 部署到 Vercel（可选）
+## 部署到 Vercel
 
-1. 上传项目到 GitHub
-2. [vercel.com](https://vercel.com) 导入仓库并 Deploy
-3. 替换 `index.html` 中 `CONFIG.FORMSPREE_URL`
-4. 访问 `https://你的项目.vercel.app`
+1. 推送代码到 GitHub
+2. [vercel.com](https://vercel.com) → Import 仓库
+3. 配置环境变量：`AUTH_SECRET`、`ADMIN_USER`、`ADMIN_PASS`（可选）
+4. Deploy
 
-部署后无需 `启动.bat`，线上自动走 `/api/bilibili`。
-
-## API 代理说明
-
-| 请求 | 说明 |
-|------|------|
-| `GET /api/bilibili?bvid=BVxxx` | 课程 view 信息 |
-| `GET /api/bilibili?bvid=BVxxx&type=pagelist` | 分 P 列表 |
-| `GET /api/bilibili?aid=123456` | av 号 view |
-
-## 配置项（index.html → CONFIG）
-
-| 字段 | 说明 |
-|------|------|
-| `FORMSPREE_URL` | **必填** — Formspree 表单 endpoint |
-| `API_PROXY` | 自有后端路径，默认 `/api/bilibili` |
-| `VIP_QR_URL` | 自律币充值二维码 |
-| `PROXIES` | 公共 CORS 代理降级列表 |
-
-## 测试课程
-
-- 高一数学：`BV1QeNc6iE84`（61P）
-- 韩顺平 Java：`BV1fh411y7R8`（910P，大课程）
+> 注意：Vercel Serverless 环境下 `data/*.json` 写入不持久，演示/简历用途足够；正式运营请迁移数据库。
 
 ## 版本历史
 
-### v1.1.0
+### v2.0.0
 
-- 新增 Vercel 后端代理，优先自有 API，公共代理降级
-- 新增用户反馈（Formspree）
-- Vercel 一键部署配置
+- 迁移至 Next.js + TypeScript + Tailwind 全栈架构
+- API Route Handlers 替代 server.js
+- 组件化拆分，Vitest 测试规划算法
+- 预留 `lib/ai/` AI 扩展点
 
-### v1.0.0
+### v1.2.0 / v1.1.0
 
-- 首个完整版本：链接解析、规划、进度、打卡、PWA
+见 `legacy/` 目录中的 Vanilla JS 版本
 
 ## 许可证
 
