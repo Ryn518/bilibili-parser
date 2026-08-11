@@ -18,18 +18,19 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1080px] items-center justify-between gap-4 px-5 py-3">
-        <span className="flex shrink-0 items-center gap-2 text-[0.95rem] font-bold text-ink">
+      <div className="mx-auto flex max-w-[1080px] items-center justify-between gap-4 px-5 py-3 max-md:gap-2 max-md:px-3 max-md:py-2.5">
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-[0.95rem] font-bold text-ink">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep text-sm text-white shadow">
             📚
           </span>
-          B站课表规划器
-          <span className="ml-0.5 rounded-full border border-border bg-surface2 px-2 py-0.5 text-[0.68rem] font-medium text-text2">
+          <span className="max-md:hidden">B站课表规划器</span>
+          <span className="hidden max-md:inline">课表规划</span>
+          <span className="ml-0.5 rounded-full border border-border bg-surface2 px-2 py-0.5 text-[0.68rem] font-medium text-text2 max-md:hidden">
             智能规划
           </span>
-        </span>
+        </Link>
 
-        <nav className="flex gap-1">
+        <nav className="flex gap-1 max-md:hidden">
           <Link
             href="/"
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${pathname === '/' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
@@ -53,6 +54,14 @@ export function Topbar() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2.5">
+          <Link
+            href="/mine"
+            className={`hidden rounded-full px-3 py-1.5 text-xs font-medium max-md:inline-flex ${
+              pathname === '/mine' ? 'bg-accent-light text-accent-text' : 'text-text2'
+            }`}
+          >
+            我的
+          </Link>
           <div
             className={`user-area flex items-center gap-1.5 rounded-full border py-1 pl-2 pr-1.5 transition ${
               userAreaClass === 'free'
