@@ -23,7 +23,7 @@ export function SiteFooter() {
         >
           有问题？给我留言
         </button>
-        <p className="mt-4 text-[0.68rem] text-text3">B站课表规划器 v2.0 · Made with ☕ for learning</p>
+        <p className="mt-4 text-[0.68rem] text-text3">B站课表规划器 v2.0.1 · Made with ☕ for learning</p>
       </div>
     </footer>
   );

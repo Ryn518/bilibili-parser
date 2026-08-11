@@ -1,6 +1,6 @@
 {
   "name": "bili-planner",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "B站课表规划器 — Next.js 全栈版",
   "scripts": {
