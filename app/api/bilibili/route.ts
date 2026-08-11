@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
     const result = await handleBilibiliQuery({
       bvid: searchParams.get('bvid'),
       aid: searchParams.get('aid'),
+      url: searchParams.get('url'),
       type: searchParams.get('type')
     });
     return NextResponse.json(result);

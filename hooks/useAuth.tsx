@@ -3,24 +3,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { CONFIG } from '@/lib/config';
 import { authApi, type SessionData } from '@/lib/auth-client';
-import { getStorageItem, removeStorageItem, setStorageItem } from '@/lib/storage';
-import type { VipInfo } from '@/lib/types';
+import { clearUserSessionPlanKeys, getStorageItem, removeStorageItem, setStorageItem, setStorageUser } from '@/lib/storage';
 
 interface AuthContextValue {
   session: SessionData | null;
-  vip: VipInfo | null;
   loading: boolean;
   isAdmin: boolean;
-  isVip: boolean;
-  isUnlimited: boolean;
-  freeRemaining: number;
-  canPlan: boolean;
   login: (username: string, password: string) => Promise<string | null>;
   register: (username: string, password: string) => Promise<string | null>;
   logout: () => void;
   refreshSession: () => Promise<void>;
-  setVipDemo: (days?: number) => void;
-  consumePlanQuota: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -32,37 +24,19 @@ function getSession(): SessionData | null {
   return s;
 }
 
-function getVipInfo(): VipInfo | null {
-  try {
-    const vip = getStorageItem<VipInfo | null>(CONFIG.VIP_KEY, null);
-    if (!vip?.expireAt || Date.now() > vip.expireAt) {
-      removeStorageItem(CONFIG.VIP_KEY);
-      return null;
-    }
-    return vip;
-  } catch {
-    return null;
-  }
-}
-
-function getUsageRecord() {
-  const store = getStorageItem<{ month?: string; count?: number }>(CONFIG.USAGE_KEY, {});
-  const month = new Date().toISOString().slice(0, 7);
-  if (store.month !== month) return { month, count: 0 };
-  return { month, count: store.count || 0 };
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionData | null>(null);
-  const [vip, setVip] = useState<VipInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usage, setUsage] = useState(getUsageRecord);
+
+  const syncUserStorage = useCallback((username: string | null) => {
+    setStorageUser(username);
+  }, []);
 
   const refreshSession = useCallback(async () => {
     const local = getSession();
     if (!local?.token) {
       setSession(null);
-      setVip(getVipInfo());
+      syncUserStorage(null);
       return;
     }
     try {
@@ -75,36 +49,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const next = { ...local, username: res.data.username, role: res.data.role, expiresAt: res.data.expiresAt };
         setStorageItem(CONFIG.AUTH_SESSION_KEY, next);
         setSession(next);
+        syncUserStorage(next.username);
       } else {
         removeStorageItem(CONFIG.AUTH_SESSION_KEY);
         setSession(null);
+        syncUserStorage(null);
       }
     } catch {
       setSession(local);
+      syncUserStorage(local.username);
     }
-    setVip(getVipInfo());
-  }, []);
+  }, [syncUserStorage]);
 
   useEffect(() => {
     refreshSession().finally(() => setLoading(false));
   }, [refreshSession]);
 
   const isAdmin = session?.role === 'admin';
-  const isVipActive = !!vip;
-  const isUnlimited = isAdmin || isVipActive;
-  const freeRemaining = Math.max(0, CONFIG.FREE_PLAN_LIMIT - usage.count);
-  const canPlan = !!session && (isUnlimited || freeRemaining > 0);
 
   const saveSessionData = (data: SessionData) => {
     setStorageItem(CONFIG.AUTH_SESSION_KEY, data);
     setSession(data);
+    syncUserStorage(data.username);
   };
 
   const login = async (username: string, password: string) => {
     const res = await authApi<SessionData>('login', { username, password });
     if (res.code !== 0 || !res.data) return res.message || '登录失败';
     saveSessionData(res.data);
-    setVip(getVipInfo());
     return null;
   };
 
@@ -116,47 +88,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    clearUserSessionPlanKeys(session?.username);
     removeStorageItem(CONFIG.AUTH_SESSION_KEY);
     setSession(null);
-  };
-
-  const setVipDemo = (days: number = CONFIG.PRICING.days) => {
-    const info: VipInfo = {
-      expireAt: Date.now() + days * 86400000,
-      plan: 'monthly',
-      activatedAt: Date.now()
-    };
-    setStorageItem(CONFIG.VIP_KEY, info);
-    setVip(info);
-  };
-
-  const consumePlanQuota = () => {
-    if (!session || isUnlimited) return true;
-    if (usage.count >= CONFIG.FREE_PLAN_LIMIT) return false;
-    const next = { month: usage.month, count: usage.count + 1 };
-    setStorageItem(CONFIG.USAGE_KEY, next);
-    setUsage(next);
-    return true;
+    syncUserStorage(null);
   };
 
   const value = useMemo(
     () => ({
       session,
-      vip,
       loading,
       isAdmin,
-      isVip: isVipActive,
-      isUnlimited,
-      freeRemaining,
-      canPlan,
       login,
       register,
       logout,
-      refreshSession,
-      setVipDemo,
-      consumePlanQuota
+      refreshSession
     }),
-    [session, vip, loading, isAdmin, isVipActive, isUnlimited, freeRemaining, canPlan, usage]
+    [session, loading, isAdmin]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

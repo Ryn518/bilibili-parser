@@ -38,12 +38,6 @@ export interface AuthSession {
   expiresAt: number;
 }
 
-export interface VipInfo {
-  expireAt: number;
-  plan: string;
-  activatedAt: number;
-}
-
 export interface PlanCache {
   bvid: string;
   title: string;

@@ -1,4 +1,14 @@
+/**
+ * B 站课程数据代理 — 借鉴 yt-dlp 的多端点策略，针对「规划器」场景做速度优化：
+ * 1. 快路径：只打一次 view（自带 title / pic / pages）
+ * 2. 缺分P 时再竞速 pagelist 端点（Promise.any，谁先成功用谁）
+ * 3. 不在热路径走 allorigins 等慢代理
+ * 4. 进程内短 TTL 缓存，重复规划秒回
+ */
 import type { Course, Episode } from '../types';
+
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const courseCache = new Map<string, { data: Course; ts: number }>();
 
 function buildHeaders(bvid?: string | null) {
   const referer = bvid
@@ -14,45 +24,69 @@ function buildHeaders(bvid?: string | null) {
   };
 }
 
-async function fetchBiliJson(url: string, bvid?: string | null) {
+function friendlyBiliError(code: number, message?: string): string {
+  if (code === -404 || /啥都木有|稿件不存在|不存在/i.test(message || '')) {
+    return '该视频不存在、已下架或无法访问，请确认链接完整有效';
+  }
+  if (code === -403 || /权限|登录|地区/i.test(message || '')) {
+    return '该视频无访问权限（可能是充电/大会员/地区限制）';
+  }
+  return message || `B站返回错误 code=${code}`;
+}
+
+/** 直连 B 站（热路径）；超时压到 8s，失败即抛，不拖慢 */
+async function fetchBiliJson(url: string, bvid?: string | null, timeoutMs = 8000) {
   const response = await fetch(url, {
     headers: buildHeaders(bvid),
-    signal: AbortSignal.timeout(15000)
+    signal: AbortSignal.timeout(timeoutMs),
+    cache: 'no-store'
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
-  if (data.code !== 0) throw new Error(data.message || `B站 code=${data.code}`);
-  return data;
+  if (data.code !== 0) {
+    throw new Error(friendlyBiliError(Number(data.code), data.message));
+  }
+  return data as { code: number; message?: string; data: unknown };
 }
 
-async function fetchPages(bvid: string) {
-  const sources = [
-    {
-      name: 'player_pagelist',
-      url: `https://api.bilibili.com/x/player/pagelist?bvid=${encodeURIComponent(bvid)}&jsonp=jsonp`
-    },
-    {
-      name: 'web_pagelist',
-      url: `https://api.bilibili.com/x/web-interface/pagelist?bvid=${encodeURIComponent(bvid)}`
+/** yt-dlp 同款：多个端点竞速，谁先成功用谁 */
+async function raceJson(
+  urls: string[],
+  bvid: string,
+  timeoutMs = 8000
+): Promise<{ code: number; data: unknown }> {
+  const errors: string[] = [];
+  return await new Promise((resolve, reject) => {
+    let pending = urls.length;
+    let settled = false;
+    for (const url of urls) {
+      fetchBiliJson(url, bvid, timeoutMs)
+        .then((data) => {
+          if (settled) return;
+          settled = true;
+          resolve(data);
+        })
+        .catch((e: Error) => {
+          errors.push(e.message);
+          pending -= 1;
+          if (!settled && pending <= 0) {
+            reject(new Error(errors[0] || '全部端点失败'));
+          }
+        });
     }
-  ];
-
-  let lastErr: Error | undefined;
-  for (const src of sources) {
-    try {
-      const json = await fetchBiliJson(src.url, bvid);
-      if (Array.isArray(json.data) && json.data.length) return json.data;
-    } catch (e) {
-      lastErr = e as Error;
-      console.warn(`pagelist ${src.name} failed:`, (e as Error).message);
-    }
-  }
-  throw lastErr || new Error('分P列表为空');
+  });
 }
 
 function normalizeCover(url: string) {
   if (!url) return '';
-  return String(url).replace(/^http:\/\//i, 'https://');
+  let u = String(url).trim().replace(/&amp;/g, '&');
+  if (u.startsWith('//')) u = `https:${u}`;
+  return u.replace(/^http:\/\//i, 'https://').replace(/@\d+w_\d+h[^/?#]*$/i, '');
+}
+
+function asPages(raw: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(raw) || !raw.length) return [];
+  return raw as Record<string, unknown>[];
 }
 
 function buildCourse(viewData: Record<string, unknown>, pages: Record<string, unknown>[], bvid: string): Course {
@@ -71,53 +105,136 @@ function buildCourse(viewData: Record<string, unknown>, pages: Record<string, un
   };
 }
 
+function getCached(bvid: string): Course | null {
+  const hit = courseCache.get(bvid);
+  if (!hit) return null;
+  if (Date.now() - hit.ts > CACHE_TTL_MS) {
+    courseCache.delete(bvid);
+    return null;
+  }
+  return hit.data;
+}
+
+function setCached(bvid: string, data: Course) {
+  courseCache.set(bvid, { data, ts: Date.now() });
+}
+
+/**
+ * 快路径（yt-dlp / 旧版最优路径）：
+ * view 一次拿齐元数据 + 分P；只有 pages 缺失才竞速 pagelist。
+ */
 export async function handleCourse(bvid: string): Promise<Course> {
+  const cached = getCached(bvid);
+  if (cached) return cached;
+
   const viewUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${encodeURIComponent(bvid)}`;
 
   let viewData: Record<string, unknown> | null = null;
   let pages: Record<string, unknown>[] = [];
+  let viewErr: Error | undefined;
 
-  const [viewR, pagesR] = await Promise.allSettled([
-    fetchBiliJson(viewUrl, bvid),
-    fetchPages(bvid)
-  ]);
+  try {
+    const view = await fetchBiliJson(viewUrl, bvid, 8000);
+    viewData = view.data as Record<string, unknown>;
+    pages = asPages(viewData?.pages);
+  } catch (e) {
+    viewErr = e as Error;
+  }
 
-  if (viewR.status === 'fulfilled') {
-    viewData = viewR.value.data;
-    if (Array.isArray(viewData?.pages) && viewData.pages.length) {
-      pages = viewData.pages as Record<string, unknown>[];
+  // pages 已够用 → 立即返回（通常 1 次 RTT）
+  if (pages.length && viewData) {
+    const course = buildCourse(viewData, pages, bvid);
+    setCached(bvid, course);
+    return course;
+  }
+
+  // 降级：竞速 yt-dlp 常用的两个 pagelist 端点
+  const pageUrls = [
+    `https://api.bilibili.com/x/player/pagelist?bvid=${encodeURIComponent(bvid)}&jsonp=jsonp`,
+    `https://api.bilibili.com/x/web-interface/pagelist?bvid=${encodeURIComponent(bvid)}`
+  ];
+
+  try {
+    const raced = await raceJson(pageUrls, bvid, 8000);
+    pages = asPages(raced.data);
+  } catch (e) {
+    if (!pages.length) {
+      throw new Error(viewErr?.message || (e as Error).message || '未找到分P信息');
     }
   }
 
-  if (pagesR.status === 'fulfilled') {
-    pages = pagesR.value;
-  } else if (!pages.length && viewR.status === 'fulfilled' && Array.isArray(viewData?.pages)) {
-    pages = viewData.pages as Record<string, unknown>[];
-  }
-
   if (!pages.length) {
-    const err = pagesR.status === 'rejected' ? pagesR.reason : viewR.status === 'rejected' ? viewR.reason : new Error('未找到分P');
-    throw new Error((err as Error).message || '未找到分P信息');
+    throw new Error(viewErr?.message || '未找到分P信息');
   }
 
   if (!viewData) {
+    // view 失败时至少用分P 拼出可用课表
     viewData = { bvid, title: pages[0]?.part || bvid, pic: '' };
   }
 
-  return buildCourse(viewData, pages, bvid);
+  const course = buildCourse(viewData, pages, bvid);
+  setCached(bvid, course);
+  return course;
+}
+
+export async function resolveShortUrl(rawUrl: string): Promise<string> {
+  const url = rawUrl.trim();
+  if (!url) throw new Error('缺少 url 参数');
+
+  const response = await fetch(url, {
+    headers: buildHeaders(null),
+    redirect: 'follow',
+    signal: AbortSignal.timeout(10000)
+  });
+
+  // BV 大小写敏感，禁止 toUpperCase 整串
+  const fromFinal = response.url.match(/BV1[a-zA-Z0-9]{9}/i);
+  if (fromFinal) {
+    const m = fromFinal[0].match(/^(BV)(1[a-zA-Z0-9]{9})$/i)!;
+    return `BV${m[2]}`;
+  }
+
+  const html = await response.text();
+  const fromHtml = html.match(/BV1[a-zA-Z0-9]{9}/i);
+  if (fromHtml) {
+    const m = fromHtml[0].match(/^(BV)(1[a-zA-Z0-9]{9})$/i)!;
+    return `BV${m[2]}`;
+  }
+
+  throw new Error('短链解析失败，未找到 BV 号');
 }
 
 export async function handleBilibiliQuery(query: {
   bvid?: string | null;
   aid?: string | null;
+  url?: string | null;
   type?: string | null;
 }) {
-  const { bvid, aid, type = 'view' } = query;
+  const { bvid, aid, url, type = 'view' } = query;
+
+  if (type === 'resolve') {
+    if (!url) throw Object.assign(new Error('resolve 需要 url 参数'), { status: 400 });
+    const resolved = await resolveShortUrl(url);
+    return { code: 0, data: { bvid: resolved } };
+  }
 
   if (type === 'course') {
-    if (!bvid) throw Object.assign(new Error('course 需要 bvid 参数'), { status: 400 });
-    const data = await handleCourse(bvid);
-    return { code: 0, data };
+    if (bvid) {
+      const data = await handleCourse(bvid);
+      return { code: 0, data };
+    }
+    if (aid) {
+      const view = await fetchBiliJson(
+        `https://api.bilibili.com/x/web-interface/view?aid=${encodeURIComponent(aid)}`,
+        null,
+        8000
+      );
+      const resolvedBvid = String((view.data as Record<string, unknown>)?.bvid || '');
+      if (!resolvedBvid) throw new Error('av 号无效');
+      const data = await handleCourse(resolvedBvid);
+      return { code: 0, data };
+    }
+    throw Object.assign(new Error('course 需要 bvid 或 aid 参数'), { status: 400 });
   }
 
   let apiUrl: string;
@@ -135,6 +252,6 @@ export async function handleBilibiliQuery(query: {
     throw Object.assign(new Error('缺少 bvid 或 aid 参数'), { status: 400 });
   }
 
-  const data = await fetchBiliJson(apiUrl, bvid || null);
+  const data = await fetchBiliJson(apiUrl, bvid || null, 8000);
   return data;
 }

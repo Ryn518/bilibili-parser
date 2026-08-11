@@ -60,5 +60,36 @@ export function submitFeedback(body: {
   list.push(entry);
   saveFeedback(list);
 
+  notifyFeedbackPushPlus(entry).catch(() => {});
+
   return { message: '感谢反馈！' };
+}
+
+export function listFeedback(limit = 50) {
+  const list = loadFeedback();
+  return list.slice(-limit).reverse();
+}
+
+async function notifyFeedbackPushPlus(entry: FeedbackEntry) {
+  const token = process.env.FEEDBACK_PUSHPLUS_TOKEN?.trim();
+  if (!token) return;
+
+  const content = [
+    `用户：${entry.username}`,
+    `联系方式：${entry.contact}`,
+    `时间：${new Date(entry.createdAt).toLocaleString('zh-CN', { hour12: false })}`,
+    '',
+    entry.message
+  ].join('\n');
+
+  await fetch('https://www.pushplus.plus/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token,
+      title: '课表规划器 · 新反馈',
+      content,
+      template: 'txt'
+    })
+  });
 }

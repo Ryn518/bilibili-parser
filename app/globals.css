@@ -32,6 +32,17 @@
   .modal {
     @apply w-full max-w-md rounded-[20px] bg-surface p-6 shadow-lg;
   }
+
+  .daily-min-input::-webkit-outer-spin-button,
+  .daily-min-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .daily-min-input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 }
 
 @keyframes resultsIn {

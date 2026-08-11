@@ -96,7 +96,7 @@ export function AuthModalHost() {
           </button>
         </form>
         <p className="mt-3 text-center text-xs leading-relaxed text-text3">
-          登录后可规划 · 免费 3 次/月 · VIP 无限
+          登录后可保存课程与进度到「我的课程」
           <br />
           密码至少 6 位，服务端加密存储
         </p>

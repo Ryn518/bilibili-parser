@@ -1,124 +1,386 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePlan } from '@/components/plan/PlanPage';
 import { formatDuration } from '@/lib/format';
-import { describePartDetail } from '@/lib/planner';
+import { describePartDetail, getCatalogRange, getDayRecommend } from '@/lib/planner';
 import { CardDownload } from '@/components/plan/CardDownload';
+import { useToast } from '@/hooks/useToast';
+import { CoverImage } from '@/components/ui/CoverImage';
 
-type Tab = 'overview' | 'today' | 'schedule';
+type Tab = 'overview' | 'today' | 'schedule' | 'extra';
+
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'overview', label: '概览', icon: '📊' },
+  { id: 'today', label: '今日', icon: '📍' },
+  { id: 'schedule', label: '日程', icon: '📅' },
+  { id: 'extra', label: '打卡', icon: '✨' }
+];
+
+function clampDaily(n: number) {
+  if (!Number.isFinite(n) || n <= 0) return 45;
+  return Math.max(10, Math.min(480, Math.round(n)));
+}
 
 export function ResultsPanel() {
-  const { course, plan, progress, dailyMinutes, toggleDayComplete, replan, backToHome } = usePlan();
+  const { course, plan, progress, dailyMinutes, replanDailyMinutes, toggleDayComplete, replan, backToHome } = usePlan();
+  const showToast = useToast();
   const [tab, setTab] = useState<Tab>('overview');
+  const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(() => new Set());
+  const [dailyDraft, setDailyDraft] = useState(String(dailyMinutes));
+
+  useEffect(() => {
+    setDailyDraft(String(dailyMinutes));
+  }, [dailyMinutes]);
+
+  useEffect(() => {
+    if (selectedDayIdx !== null && selectedDayIdx >= plan.length) {
+      setSelectedDayIdx(null);
+    }
+  }, [plan.length, selectedDayIdx]);
+
+  const stats = useMemo(() => {
+    const done = progress.completedDays?.length || 0;
+    const total = plan.length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    return { done, total, pct, remain: total - done };
+  }, [plan.length, progress.completedDays]);
+
+  const currentIdx = useMemo(
+    () => plan.findIndex((d) => !progress.completedDays?.includes(d.day)),
+    [plan, progress.completedDays]
+  );
+
+  const focusIdx = selectedDayIdx ?? (currentIdx >= 0 ? currentIdx : Math.max(0, plan.length - 1));
+  const focusDay = plan[focusIdx];
 
   if (!course) return null;
 
-  const done = progress.completedDays?.length || 0;
-  const total = plan.length;
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const currentIdx = plan.findIndex((d) => !progress.completedDays?.includes(d.day));
-  const today = plan[currentIdx >= 0 ? currentIdx : plan.length - 1];
+  const toggleExpand = (dayNum: number) => {
+    setExpandedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(dayNum)) next.delete(dayNum);
+      else next.add(dayNum);
+      return next;
+    });
+  };
+
+  const selectDay = (idx: number) => {
+    setSelectedDayIdx(idx);
+    setTab('today');
+  };
+
+  const handleReplanDaily = () => {
+    const next = clampDaily(Number(dailyDraft));
+    setDailyDraft(String(next));
+    if (next === dailyMinutes) {
+      showToast('每日时长未变化');
+      return;
+    }
+    replanDailyMinutes(next);
+  };
 
   return (
-    <section className="animate-[resultsIn_0.4s_ease] py-9">
-      <div className="mb-6 flex flex-wrap items-center gap-3 border-b border-border2 pb-4">
-        <button type="button" onClick={backToHome} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-text2 shadow hover:border-accent hover:text-accent-text">
+    <section className="animate-[resultsIn_0.4s_ease] py-6 md:py-9">
+      <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-border2 pb-4">
+        <button
+          type="button"
+          onClick={backToHome}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-text2 shadow hover:border-accent hover:text-accent-text"
+        >
           ← 返回首页
         </button>
-        <span className="text-sm font-semibold text-text2">规划结果 · {course.title.slice(0, 40)}</span>
+        <span className="text-sm font-semibold text-text2">我的课表 · {course.title.slice(0, 36)}</span>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(['overview', 'today', 'schedule'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium ${tab === t ? 'bg-accent-light text-accent-text' : 'text-text2'}`}
-          >
-            {t === 'overview' ? '概览' : t === 'today' ? '今日' : '完整日程'}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'overview' && (
-        <div className="grid gap-4 md:grid-cols-[260px_1fr]">
-          <div className="overflow-hidden rounded-[14px] border border-border bg-surface shadow-card">
-            {course.cover ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={course.cover} alt="" className="aspect-video w-full object-cover" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="flex aspect-video items-center justify-center bg-surface2 text-4xl">📺</div>
-            )}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(260px,300px)_1fr]">
+        <aside className="flex flex-col gap-4">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+            <CoverImage src={course.cover} wrapperClassName="aspect-video w-full" />
             <div className="p-4">
-              <h2 className="mb-1 font-bold text-ink">{course.title}</h2>
-              <p className="text-xs text-text3">{course.episodes.length} 个分P · 共 {formatDuration(course.totalSeconds)}</p>
-            </div>
-          </div>
-          <div className="rounded-[14px] border border-border bg-surface p-5 shadow-card">
-            <p className="mb-2 text-sm text-text2">进度 {done}/{total} 天 · {pct}%</p>
-            <div className="mb-4 h-2 overflow-hidden rounded-full bg-surface2">
-              <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-deep" style={{ width: `${pct}%` }} />
-            </div>
-            <p className="mb-1 text-sm font-semibold text-ink">每日 {dailyMinutes} 分钟 · 共 {total} 天</p>
-            {today && (
-              <p className="text-sm text-text2">
-                当前：第 {today.day} 天 — {today.catalogMain}
+              <h2 className="line-clamp-2 text-sm font-bold leading-snug text-ink">{course.title}</h2>
+              <p className="mt-1.5 text-xs text-text3">
+                {formatDuration(course.totalSeconds)} · {course.episodes.length}P · 每天 {dailyMinutes} 分钟
               </p>
-            )}
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button type="button" onClick={replan} className="rounded-full border border-border px-4 py-2 text-sm text-text2 hover:border-accent">
-                重新规划
-              </button>
-              <CardDownload />
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <span className="rounded-md bg-accent-light px-2 py-0.5 text-[0.68rem] font-semibold text-accent-text">
+                  智能规划
+                </span>
+                <span className="rounded-md bg-surface2 px-2 py-0.5 text-[0.68rem] font-semibold text-accent-deep">
+                  {plan.length} 天计划
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {tab === 'today' && today && (
-        <div className="rounded-[14px] border border-border bg-surface p-5 shadow-card">
-          <h3 className="mb-2 text-lg font-bold">第 {today.day} 天 · {formatDuration(today.totalSec)}</h3>
-          <p className="mb-1 font-medium text-accent-text">{today.catalogMain}</p>
-          <p className="mb-4 text-sm text-text3">{today.catalogSub}</p>
-          <ul className="space-y-2 text-sm text-text2">
-            {today.pList.map((p, i) => (
-              <li key={i} className="rounded-lg bg-surface2 px-3 py-2">{describePartDetail(p)}</li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={() => toggleDayComplete(today.day)}
-            className={`mt-4 rounded-full px-5 py-2 text-sm font-semibold ${progress.completedDays?.includes(today.day) ? 'bg-green-100 text-green-700' : 'bg-accent-light text-accent-text'}`}
-          >
-            {progress.completedDays?.includes(today.day) ? '✓ 已完成' : '标记今日完成'}
-          </button>
-        </div>
-      )}
+          <div className="rounded-2xl border border-border bg-surface p-3 shadow-card">
+            <p className="mb-2 px-1 text-xs font-semibold text-text3">切换学习日</p>
+            <div className="max-h-[280px] space-y-1.5 overflow-y-auto pr-0.5">
+              {plan.map((d, idx) => {
+                const done = progress.completedDays?.includes(d.day);
+                const isCur = idx === focusIdx;
+                const cat = getCatalogRange(d, course.episodes);
+                return (
+                  <button
+                    key={d.day}
+                    type="button"
+                    onClick={() => selectDay(idx)}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${
+                      isCur
+                        ? 'border-accent bg-accent-light shadow-sm'
+                        : 'border-border2 bg-surface2 hover:border-accent/50 hover:bg-white'
+                    } ${done ? 'opacity-70' : ''}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-ink">
+                        第 {d.day} 天 · {formatDuration(d.totalSec)}
+                      </span>
+                      {done && <span className="text-[0.65rem] text-green-600">✓</span>}
+                    </div>
+                    <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-accent-text">{cat.main}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-      {tab === 'schedule' && (
-        <div className="space-y-3">
-          {plan.map((day) => (
-            <div key={day.day} className="rounded-[14px] border border-border bg-surface p-4 shadow-card">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h4 className="font-semibold text-ink">
-                  第 {day.day} 天 · {formatDuration(day.totalSec)}
-                </h4>
+          <p className="px-1 text-[0.72rem] leading-relaxed text-text3">
+            💡 点击左侧日程可切换「今日」视图；日程页点击条目可展开分 P 详情。
+          </p>
+        </aside>
+
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+          <div className="border-b border-border2 bg-surface2/80 p-2">
+            <div className="flex flex-wrap gap-1 rounded-full border border-border bg-surface2 p-1">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={`rounded-full px-3.5 py-2 text-sm font-medium transition sm:px-4 ${
+                    tab === t.id
+                      ? 'bg-surface text-ink shadow-sm ring-1 ring-accent/25'
+                      : 'text-text2 hover:text-ink'
+                  }`}
+                >
+                  <span className="mr-1">{t.icon}</span>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5">
+            {tab === 'overview' && (
+              <div className="space-y-4">
+                <div>
+                  <div className="mb-2 flex justify-between text-xs">
+                    <span className="font-medium text-text2">学习进度</span>
+                    <span className="font-semibold text-accent-text">
+                      {stats.pct}% · {stats.done}/{stats.total} 天
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-surface2">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-accent to-accent-deep transition-all duration-500"
+                      style={{ width: `${stats.pct}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { n: stats.done, label: '已完成' },
+                    { n: stats.remain, label: '剩余天' },
+                    { n: `${stats.pct}%`, label: '总进度' }
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl border border-border2 bg-surface2 py-3 text-center">
+                      <div className="text-xl font-bold text-ink">{s.n}</div>
+                      <div className="mt-0.5 text-[0.68rem] text-text3">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                {focusDay && (
+                  <div className="rounded-xl border border-border2 bg-gradient-to-br from-accent-light/60 to-surface p-4">
+                    <p className="mb-1 text-[0.72rem] font-bold uppercase tracking-wide text-accent-text">当前学习</p>
+                    <p className="text-sm font-bold text-ink">
+                      第 {focusDay.day} 天 · {formatDuration(focusDay.totalSec)}
+                    </p>
+                    <p className="mt-2 text-sm font-medium leading-relaxed text-accent-text">{focusDay.catalogMain}</p>
+                    <p className="mt-1 text-xs text-text3">{focusDay.catalogSub}</p>
+                  </div>
+                )}
+                <div className="rounded-xl border border-dashed border-accent/35 bg-surface2/60 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-ink">调整每日学习时长</p>
+                    <span className="text-xs text-text3">不消耗规划次数</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5">
+                      <span className="text-sm text-text2">每天</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={dailyDraft}
+                        onChange={(e) => setDailyDraft(e.target.value.replace(/[^\d]/g, ''))}
+                        onBlur={() => setDailyDraft(String(clampDaily(Number(dailyDraft))))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleReplanDaily();
+                          }
+                        }}
+                        className="w-16 bg-transparent text-center text-lg font-bold text-ink outline-none"
+                        aria-label="每天学习分钟数"
+                      />
+                      <span className="text-sm text-text2">分钟</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleReplanDaily}
+                      className="rounded-xl bg-gradient-to-br from-accent to-accent-deep px-5 py-2.5 text-sm font-semibold text-white shadow hover:opacity-95"
+                    >
+                      重新规划
+                    </button>
+                  </div>
+                  <p className="mt-2.5 text-xs leading-relaxed text-text3">
+                    修改后将按新时长重新切分全部日程，已打卡进度会尽量保留。
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {tab === 'today' && focusDay && (
+              <div>
+                <div className="mb-3 text-[0.72rem] font-bold uppercase tracking-wide text-accent-text">
+                  {progress.completedDays?.includes(focusDay.day) ? '✅ 本日已完成' : `📍 第 ${focusDay.day} 天学习`}
+                </div>
+                <p className="mb-1 text-base font-bold leading-relaxed text-ink">{focusDay.catalogMain}</p>
+                <p className="mb-3 text-sm text-text2">{focusDay.catalogSub}</p>
+                <div className="mb-4 rounded-xl border-l-[3px] border-accent bg-accent-light/70 px-3 py-2.5 text-sm leading-relaxed text-text">
+                  📌 {getDayRecommend(focusDay)}
+                </div>
+                <ul className="space-y-2">
+                  {focusDay.pList.map((p, i) => (
+                    <li
+                      key={i}
+                      className="rounded-xl border border-border2 bg-surface2 px-3 py-2.5 text-sm text-text"
+                    >
+                      {describePartDetail(p)}
+                    </li>
+                  ))}
+                </ul>
                 <button
                   type="button"
-                  onClick={() => toggleDayComplete(day.day)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${progress.completedDays?.includes(day.day) ? 'bg-green-100 text-green-700' : 'bg-surface2 text-text2'}`}
+                  onClick={() => toggleDayComplete(focusDay.day)}
+                  className={`mt-5 w-full rounded-xl py-3 text-sm font-semibold transition ${
+                    progress.completedDays?.includes(focusDay.day)
+                      ? 'border border-border bg-surface2 text-text2'
+                      : 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow'
+                  }`}
                 >
-                  {progress.completedDays?.includes(day.day) ? '已完成' : '打勾'}
+                  {progress.completedDays?.includes(focusDay.day) ? '✓ 已完成，点击取消' : '✓ 标记本日学完'}
                 </button>
               </div>
-              <p className="text-sm font-medium text-accent-text">{day.catalogMain}</p>
-              <p className="text-xs text-text3">{day.catalogSub}</p>
-            </div>
-          ))}
+            )}
+
+            {tab === 'schedule' && (
+              <div>
+                <div className="mb-3 flex items-center justify-between px-0.5">
+                  <h3 className="text-sm font-semibold text-ink">全部日程</h3>
+                  <span className="text-xs text-text3">共 {plan.length} 天</span>
+                </div>
+                <div className="max-h-[min(520px,60vh)] space-y-1 overflow-y-auto pr-1">
+                  {plan.map((d, idx) => {
+                    const done = progress.completedDays?.includes(d.day);
+                    const isCur = idx === currentIdx;
+                    const expanded = expandedDays.has(d.day);
+                    const cat = getCatalogRange(d, course.episodes);
+                    return (
+                      <div key={d.day}>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggleExpand(d.day)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleExpand(d.day);
+                            }
+                          }}
+                          className={`flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 transition ${
+                            isCur
+                              ? 'border-accent bg-accent-light'
+                              : 'border-border2 bg-surface2 hover:border-accent/50'
+                          } ${done ? 'opacity-65' : ''}`}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDayComplete(d.day);
+                            }}
+                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-[0.65rem] transition ${
+                              done
+                                ? 'border-emerald-500 bg-emerald-500 text-white'
+                                : 'border-border bg-surface text-transparent hover:border-accent'
+                            }`}
+                            aria-label={done ? '取消完成' : '标记完成'}
+                          >
+                            ✓
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-ink">
+                              第 {d.day} 天{isCur ? ' · 当前' : ''} · 约 {formatDuration(d.totalSec)}
+                            </div>
+                            <div className="mt-0.5 text-[0.8rem] font-medium leading-snug text-accent-text">
+                              {cat.main}
+                            </div>
+                            <p className="mt-0.5 text-[0.72rem] text-text3">{cat.sub}</p>
+                          </div>
+                          <span className={`mt-1 shrink-0 text-xs text-text3 transition ${expanded ? 'rotate-180' : ''}`}>
+                            ▼
+                          </span>
+                        </div>
+                        {expanded && (
+                          <div className="mx-2 mb-1 rounded-b-xl border border-t-0 border-border2 bg-surface2/80 px-3 py-2 pl-10">
+                            {d.pList.map((p, i) => (
+                              <div
+                                key={i}
+                                className="border-b border-border2 py-2 text-[0.78rem] text-text2 last:border-0"
+                              >
+                                {describePartDetail(p)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {tab === 'extra' && (
+              <div>
+                <p className="mb-4 text-sm leading-relaxed text-text2">
+                  生成精美打卡图，分享到朋友圈记录学习进度。
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <CardDownload />
+                  <button
+                    type="button"
+                    onClick={replan}
+                    className="rounded-full border border-border px-4 py-2 text-sm text-text2 hover:border-accent"
+                  >
+                    清空重来
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }

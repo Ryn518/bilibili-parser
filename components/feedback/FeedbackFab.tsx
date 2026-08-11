@@ -57,7 +57,9 @@ export function FeedbackFab() {
         <div className="modal-overlay" onClick={closeFeedback}>
           <div className="modal max-w-[400px] text-left" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-1 text-center text-lg font-bold">反馈建议</h3>
-            <p className="mb-4 text-center text-xs text-text2">遇到问题或有改进想法？告诉我吧</p>
+            <p className="mb-4 text-center text-xs leading-relaxed text-text2">
+              链接解析失败、页面 bug、功能建议都可以说。这是个人项目，你的反馈对我很重要。
+            </p>
             <form onSubmit={submit}>
               <label className="mb-1.5 block text-xs font-semibold text-text2">问题描述 / 建议</label>
               <textarea

@@ -1,11 +1,13 @@
 export function normalizeBvid(bv: string | null | undefined): string | null {
   if (!bv) return null;
-  const m = String(bv).match(/^(BV1[a-zA-Z0-9]{9})$/i);
-  return m ? m[1].toUpperCase() : null;
+  // B 站 BV 号大小写敏感，只能规范前缀 BV，不能整体 toUpperCase
+  const m = String(bv).trim().match(/^(BV)(1[a-zA-Z0-9]{9})$/i);
+  if (!m) return null;
+  return `BV${m[2]}`;
 }
 
 export function bvidMatch(a: string, b: string): boolean {
-  return !!a && !!b && a.toUpperCase() === b.toUpperCase();
+  return !!a && !!b && a === b;
 }
 
 export function cleanPasteText(raw: string): string {
@@ -69,4 +71,50 @@ export function parsePasteInput(raw: string) {
     text.match(/[【\[]([^\]]{2,80}?)[】\]]/) || text.match(/^(.{2,80}?)(?=https?:\/\/)/);
   const hintTitle = titleMatch ? titleMatch[1].replace(/^[【\[]+/, '').trim() : '';
   return { videoId: extractBvFromText(text), hintTitle };
+}
+
+function fetchSignal(ms = 15000): AbortSignal {
+  if (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+    return AbortSignal.timeout(ms);
+  }
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), ms);
+  return ctrl.signal;
+}
+
+/** 解析粘贴内容为 BV 号（含短链、av 号） */
+export async function resolveVideoId(input: string): Promise<string> {
+  const parsed = parsePasteInput(input);
+  const id = parsed.videoId;
+
+  if (typeof id === 'string') return id;
+
+  if (id && 'aid' in id) {
+    const res = await fetch(`/api/bilibili?type=course&aid=${encodeURIComponent(id.aid)}`, {
+      signal: fetchSignal(20000)
+    });
+    const json = await res.json();
+    if (json.code === 0 && json.data?.bvid) return json.data.bvid as string;
+    throw new Error(json.message || 'av 号解析失败');
+  }
+
+  if (id && 'shortUrl' in id) {
+    const res = await fetch(`/api/bilibili?type=resolve&url=${encodeURIComponent(id.shortUrl)}`, {
+      signal: fetchSignal(20000)
+    });
+    const json = await res.json();
+    if (json.code === 0 && json.data?.bvid) return json.data.bvid as string;
+    throw new Error(json.message || '短链解析失败，请粘贴完整链接');
+  }
+
+  for (const u of extractUrls(cleanPasteText(input))) {
+    if (!/b23\.tv/i.test(u)) continue;
+    const res = await fetch(`/api/bilibili?type=resolve&url=${encodeURIComponent(u)}`, {
+      signal: fetchSignal(20000)
+    });
+    const json = await res.json();
+    if (json.code === 0 && json.data?.bvid) return json.data.bvid as string;
+  }
+
+  throw new Error('无法识别 BV 号，请粘贴完整 B 站分享内容');
 }

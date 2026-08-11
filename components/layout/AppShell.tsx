@@ -4,21 +4,21 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { ToastProvider } from '@/hooks/useToast';
 import { UiProvider } from '@/hooks/useUiStore';
 import { Topbar } from '@/components/layout/Topbar';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { FeedbackFab } from '@/components/feedback/FeedbackFab';
 import { AuthModalHost } from '@/components/auth/AuthModalHost';
-import { PricingModalHost } from '@/components/vip/PricingModalHost';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <UiProvider>
         <ToastProvider>
-          <div className="relative z-[1] min-h-dvh">
+          <div className="relative z-[1] flex min-h-dvh flex-col">
             <Topbar />
-            <main>{children}</main>
+            <main className="flex-1">{children}</main>
+            <SiteFooter />
             <FeedbackFab />
             <AuthModalHost />
-            <PricingModalHost />
           </div>
         </ToastProvider>
       </UiProvider>

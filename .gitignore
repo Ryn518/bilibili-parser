@@ -2,9 +2,11 @@
 p910.json
 *.json.bak
 
-# 部署
+# 部署与密钥（切勿提交）
 .vercel/
 .env
+.env.local
+.env.*.local
 data/
 
 # Next.js
@@ -18,3 +20,4 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+.cursor/

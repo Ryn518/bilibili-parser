@@ -77,6 +77,11 @@ export function describePartDetail(p: PlanPart): string {
   return `「${p.title}」整集（${formatDuration(p.duration)}）`;
 }
 
+export function getDayRecommend(day: PlanDay): string {
+  const { main } = getCatalogRange(day);
+  return `今日目标：${main}`;
+}
+
 export function generatePlan(episodes: Episode[], dailyMin: number): PlanDay[] {
   const dailySec = dailyMin * 60;
   const flexSec = Math.floor(dailySec * 0.15);
