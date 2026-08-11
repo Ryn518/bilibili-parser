@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const result = submitFeedback({
+    const result = await submitFeedback({
       ...body,
       ua: req.headers.get('user-agent') || ''
     });

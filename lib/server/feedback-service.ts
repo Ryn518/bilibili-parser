@@ -30,7 +30,13 @@ function saveFeedback(list: FeedbackEntry[]) {
   fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(list, null, 2), 'utf8');
 }
 
-export function submitFeedback(body: {
+function persistFeedback(entry: FeedbackEntry) {
+  const list = loadFeedback();
+  list.push(entry);
+  saveFeedback(list);
+}
+
+export async function submitFeedback(body: {
   message?: string;
   contact?: string;
   username?: string;
@@ -56,11 +62,19 @@ export function submitFeedback(body: {
     ua: String(body.ua || '').slice(0, 200)
   };
 
-  const list = loadFeedback();
-  list.push(entry);
-  saveFeedback(list);
+  let savedToDisk = false;
+  try {
+    persistFeedback(entry);
+    savedToDisk = true;
+  } catch {
+    // Vercel 等 Serverless 环境文件系统只读，跳过本地落盘
+  }
 
-  notifyFeedbackPushPlus(entry).catch(() => {});
+  const notified = await notifyFeedbackPushPlus(entry);
+
+  if (!savedToDisk && !notified) {
+    return { error: '反馈暂时无法提交，请稍后再试', status: 503 };
+  }
 
   return { message: '感谢反馈！' };
 }
@@ -70,9 +84,9 @@ export function listFeedback(limit = 50) {
   return list.slice(-limit).reverse();
 }
 
-async function notifyFeedbackPushPlus(entry: FeedbackEntry) {
+async function notifyFeedbackPushPlus(entry: FeedbackEntry): Promise<boolean> {
   const token = process.env.FEEDBACK_PUSHPLUS_TOKEN?.trim();
-  if (!token) return;
+  if (!token) return false;
 
   const content = [
     `用户：${entry.username}`,
@@ -82,14 +96,21 @@ async function notifyFeedbackPushPlus(entry: FeedbackEntry) {
     entry.message
   ].join('\n');
 
-  await fetch('https://www.pushplus.plus/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      token,
-      title: '课表规划器 · 新反馈',
-      content,
-      template: 'txt'
-    })
-  });
+  try {
+    const res = await fetch('https://www.pushplus.plus/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        title: '课表规划器 · 新反馈',
+        content,
+        template: 'txt'
+      })
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { code?: number };
+    return data.code === 200;
+  } catch {
+    return false;
+  }
 }
