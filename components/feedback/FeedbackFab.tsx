@@ -44,7 +44,7 @@ export function FeedbackFab() {
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-[120] flex flex-col items-end gap-2.5">
+      <div className="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] right-4 z-[120] flex flex-col items-end gap-2.5 md:bottom-5 md:right-5">
         <button
           type="button"
           onClick={openFeedback}

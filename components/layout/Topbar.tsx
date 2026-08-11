@@ -10,26 +10,23 @@ export function Topbar() {
   const auth = useAuth();
   const { openAuth } = useUiStore();
 
-  const userAreaClass = auth.session ? 'free' : 'guest';
-
   const initial = auth.session?.username.slice(0, 1).toUpperCase() || '👤';
-  const userName = auth.session?.username || '访客';
-  const userStatus = auth.session ? '免费无限使用' : '登录后保存课程';
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1080px] items-center justify-between gap-4 px-5 py-3">
-        <span className="flex shrink-0 items-center gap-2 text-[0.95rem] font-bold text-ink">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep text-sm text-white shadow">
+      <div className="mx-auto flex max-w-[1080px] items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
+        <Link href="/" className="flex min-w-0 shrink items-center gap-2 text-sm font-bold text-ink sm:text-[0.95rem]">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep text-sm text-white shadow">
             📚
           </span>
-          B站课表规划器
-          <span className="ml-0.5 rounded-full border border-border bg-surface2 px-2 py-0.5 text-[0.68rem] font-medium text-text2">
+          <span className="truncate sm:hidden">课表规划</span>
+          <span className="hidden truncate sm:inline">B站课表规划器</span>
+          <span className="ml-0.5 hidden rounded-full border border-border bg-surface2 px-2 py-0.5 text-[0.68rem] font-medium text-text2 lg:inline">
             智能规划
           </span>
-        </span>
+        </Link>
 
-        <nav className="flex gap-1">
+        <nav className="hidden gap-1 md:flex">
           <Link
             href="/"
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${pathname === '/' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
@@ -52,51 +49,40 @@ export function Topbar() {
           </Link>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2.5">
-          <div
-            className={`user-area flex items-center gap-1.5 rounded-full border py-1 pl-2 pr-1.5 transition ${
-              userAreaClass === 'free'
-                ? 'border-border bg-gradient-to-br from-white to-surface2'
-                : 'border-border bg-gradient-to-br from-white to-surface2 pr-2'
-            }`}
-          >
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                  userAreaClass === 'free'
-                    ? 'bg-gradient-to-br from-[#DBEAFE] to-[#BFDBFE] text-accent-text'
-                    : 'bg-gradient-to-br from-[#F8FAFC] to-[#E2E8F0] text-text3'
-                }`}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+          {!auth.session ? (
+            <>
+              <Link
+                href="/mine"
+                className="rounded-full px-2.5 py-1.5 text-xs font-medium text-text2 md:hidden"
               >
-                {initial}
-              </span>
-              <div className="hidden min-w-0 max-w-[108px] flex-col sm:flex">
-                <span
-                  className={`truncate text-[0.76rem] font-semibold ${userAreaClass === 'guest' ? 'font-medium text-text2' : 'text-ink'}`}
-                >
-                  {userName}
-                </span>
-                <span className="truncate text-[0.65rem] text-text3">{userStatus}</span>
-              </div>
-            </div>
-            {!auth.session ? (
+                我的
+              </Link>
               <button
                 type="button"
                 onClick={() => openAuth('login')}
-                className="btn-auth-primary shrink-0 rounded-full bg-gradient-to-br from-accent to-accent-deep px-3.5 py-1.5 text-[0.76rem] font-semibold text-white shadow"
+                className="btn-auth-primary shrink-0 rounded-full bg-gradient-to-br from-accent to-accent-deep px-3.5 py-1.5 text-xs font-semibold text-white shadow sm:text-[0.76rem]"
               >
                 登录
               </button>
-            ) : (
+            </>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full border border-border bg-surface2 py-1 pl-1 pr-1.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#DBEAFE] to-[#BFDBFE] text-xs font-bold text-accent-text sm:h-8 sm:w-8">
+                {initial}
+              </span>
+              <span className="hidden max-w-[88px] truncate text-xs font-semibold text-ink sm:inline">
+                {auth.session.username}
+              </span>
               <button
                 type="button"
                 onClick={auth.logout}
-                className="shrink-0 rounded-full px-2.5 py-1 text-[0.72rem] font-medium text-text3 hover:bg-red-50 hover:text-red-600"
+                className="shrink-0 rounded-full px-2 py-1 text-[0.7rem] font-medium text-text3 hover:bg-red-50 hover:text-red-600"
               >
                 退出
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
