@@ -1,11 +1,11 @@
 {
-  "name": "B站课表规划器",
+  "name": "视频课表规划器",
   "short_name": "课表规划",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#DCE8F5",
   "theme_color": "#DCE8F5",
-  "description": "B站课程智能课表规划",
+  "description": "视频课程智能课表规划",
   "icons": [
     {
       "src": "/icon.svg",

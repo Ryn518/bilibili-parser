@@ -23,7 +23,7 @@ export function Topbar() {
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep text-sm text-white shadow">
             📚
           </span>
-          <span className="max-md:hidden">B站课表规划器</span>
+          <span className="max-md:hidden">视频课表规划器</span>
           <span className="hidden max-md:inline">课表规划</span>
           <span className="ml-0.5 rounded-full border border-border bg-surface2 px-2 py-0.5 text-[0.68rem] font-medium text-text2 max-md:hidden">
             智能规划

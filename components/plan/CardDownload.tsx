@@ -20,7 +20,7 @@ export function CardDownload() {
         <div style="font-size:18px;font-weight:700;color:#0F172A;margin-bottom:8px">${course.title.slice(0, 40)}</div>
         <div style="font-size:13px;color:#475569;margin-bottom:16px">${course.bvid} · ${formatDuration(course.totalSeconds)}</div>
         <div style="font-size:14px;color:#1E40AF;font-weight:600">进度 ${done}/${plan.length} 天</div>
-        <div style="margin-top:12px;font-size:12px;color:#64748B">生成 by B站课表规划器</div>
+        <div style="margin-top:12px;font-size:12px;color:#64748B">生成 by 视频课表规划器</div>
       `;
       document.body.appendChild(el);
       const canvas = await html2canvas(el, { scale: 2 });
