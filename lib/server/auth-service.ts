@@ -1,9 +1,23 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { createUser, findUserByUsername, usernameExists } from './user-repository';
+import { isDatabaseConfigured } from './db';
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
+
+export interface TokenPayload {
+  username: string;
+  role: 'user' | 'admin';
+  exp: number;
+  userId?: string;
+}
+
+export interface AuthCredentialRecord {
+  salt: string;
+  hash: string;
+}
 
 function getAuthSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -13,7 +27,7 @@ function getAuthSecret() {
   return secret;
 }
 
-function normalizeUsername(name: string) {
+export function normalizeUsername(name: string) {
   return String(name || '').trim().toLowerCase();
 }
 
@@ -52,6 +66,7 @@ function saveUsers(users: Record<string, unknown>) {
 }
 
 function canPersistUsersToDisk() {
+  if (isDatabaseConfigured()) return false;
   if (process.env.VERCEL === '1') return false;
   try {
     const dir = path.dirname(USERS_FILE);
@@ -63,19 +78,14 @@ function canPersistUsersToDisk() {
   }
 }
 
-export interface AuthCredentialRecord {
-  salt: string;
-  hash: string;
-}
-
-function signToken(payload: object) {
+function signToken(payload: TokenPayload) {
   const secret = getAuthSecret();
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
   return `${data}.${sig}`;
 }
 
-export function verifyToken(token: string | null | undefined) {
+export function verifyToken(token: string | null | undefined): TokenPayload | null {
   if (!token || typeof token !== 'string') return null;
   const parts = token.split('.');
   if (parts.length !== 2) return null;
@@ -85,28 +95,28 @@ export function verifyToken(token: string | null | undefined) {
     const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
     if (sig.length !== expected.length) return null;
     if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
-    const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
+    const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8')) as TokenPayload;
     if (!payload.exp || Date.now() > payload.exp) return null;
-    return payload as { username: string; role: 'user' | 'admin'; exp: number };
+    return payload;
   } catch {
     return null;
   }
 }
 
-function issueSession(username: string, role: 'user' | 'admin') {
+function issueSession(username: string, role: 'user' | 'admin', userId?: string) {
   const exp = Date.now() + TOKEN_TTL_MS;
-  const token = signToken({ username, role, exp });
-  return { token, username, role, expiresAt: exp };
+  const token = signToken({ username, role, exp, userId });
+  return { token, username, role, expiresAt: exp, userId };
 }
 
-export function handleLogin(
+export async function handleLogin(
   username: string,
   password: string,
   clientRecord?: AuthCredentialRecord | null
 ) {
   username = normalizeUsername(username);
   if (!username || !password) {
-    return { error: '请输入用户名和密码', status: 400 };
+    return { error: '请输入用户名和密码', status: 400 as const };
   }
 
   const adminUser = normalizeUsername(process.env.ADMIN_USER || '');
@@ -114,9 +124,17 @@ export function handleLogin(
 
   if (adminUser && adminPass && username === adminUser) {
     if (password !== adminPass) {
-      return { error: '用户名或密码错误', status: 401 };
+      return { error: '用户名或密码错误', status: 401 as const };
     }
     return { data: issueSession(username, 'admin') };
+  }
+
+  if (isDatabaseConfigured()) {
+    const dbUser = await findUserByUsername(username);
+    if (!dbUser || !verifyPassword(password, { salt: dbUser.salt, hash: dbUser.password_hash })) {
+      return { error: '用户名或密码错误', status: 401 as const };
+    }
+    return { data: issueSession(username, 'user', dbUser.id) };
   }
 
   const users = loadUsers();
@@ -126,39 +144,51 @@ export function handleLogin(
   }
 
   if (canPersistUsersToDisk()) {
-    return { error: '用户名或密码错误', status: 401 };
+    return { error: '用户名或密码错误', status: 401 as const };
   }
 
   if (!clientRecord?.salt || !clientRecord?.hash) {
-    return { error: '本机未找到该账号，请先注册', status: 401 };
+    return { error: '本机未找到该账号，请先注册', status: 401 as const };
   }
   if (!verifyPassword(password, clientRecord)) {
-    return { error: '用户名或密码错误', status: 401 };
+    return { error: '用户名或密码错误', status: 401 as const };
   }
   return { data: issueSession(username, 'user') };
 }
 
-export function handleRegister(username: string, password: string) {
+export async function handleRegister(username: string, password: string) {
   username = normalizeUsername(username);
-  if (username.length < 2) return { error: '用户名至少 2 个字符', status: 400 };
-  if (!password || password.length < 6) return { error: '密码至少 6 位', status: 400 };
+  if (username.length < 2) return { error: '用户名至少 2 个字符', status: 400 as const };
+  if (!password || password.length < 6) return { error: '密码至少 6 位', status: 400 as const };
 
   const adminUser = normalizeUsername(process.env.ADMIN_USER || '');
   if (adminUser && username === adminUser) {
-    return { error: '该用户名不可注册', status: 400 };
+    return { error: '该用户名不可注册', status: 400 as const };
+  }
+
+  const record = createPasswordRecord(password);
+
+  if (isDatabaseConfigured()) {
+    if (await usernameExists(username)) {
+      return { error: '用户名已存在', status: 409 as const };
+    }
+    try {
+      const dbUser = await createUser(username, record.salt, record.hash);
+      return { data: issueSession(username, 'user', dbUser.id) };
+    } catch {
+      return { error: '注册暂时不可用，请稍后再试', status: 503 as const };
+    }
   }
 
   const users = loadUsers();
-  if (users[username]) return { error: '用户名已存在', status: 409 };
-
-  const record = { ...createPasswordRecord(password), createdAt: Date.now() };
+  if (users[username]) return { error: '用户名已存在', status: 409 as const };
 
   if (canPersistUsersToDisk()) {
-    users[username] = record;
+    users[username] = { ...record, createdAt: Date.now() };
     try {
       saveUsers(users);
     } catch {
-      return { error: '注册暂时不可用，请稍后再试', status: 503 };
+      return { error: '注册暂时不可用，请稍后再试', status: 503 as const };
     }
     return { data: issueSession(username, 'user') };
   }
@@ -171,12 +201,25 @@ export function handleRegister(username: string, password: string) {
 
 export function handleMe(token: string) {
   const payload = verifyToken(token);
-  if (!payload) return { error: '登录已过期，请重新登录', status: 401 };
+  if (!payload) return { error: '登录已过期，请重新登录', status: 401 as const };
   return {
     data: {
       username: payload.username,
       role: payload.role,
-      expiresAt: payload.exp
+      expiresAt: payload.exp,
+      userId: payload.userId
     }
   };
+}
+
+export function requireSyncUser(token: string | null | undefined) {
+  const payload = verifyToken(token);
+  if (!payload) return { error: '需要登录', status: 401 as const };
+  if (payload.role === 'admin' || !payload.userId) {
+    return { error: '当前账号不支持云同步', status: 403 as const };
+  }
+  if (!isDatabaseConfigured()) {
+    return { error: '服务器未启用云同步', status: 503 as const };
+  }
+  return { payload };
 }

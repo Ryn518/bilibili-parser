@@ -36,6 +36,7 @@ export interface AuthSession {
   username: string;
   role: 'user' | 'admin';
   expiresAt: number;
+  userId?: string;
 }
 
 export interface PlanCache {

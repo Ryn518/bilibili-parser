@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
     let result;
 
     if (action === 'login') {
-      result = handleLogin(body.username, body.password, body.authRecord);
+      result = await handleLogin(body.username, body.password, body.authRecord);
     } else if (action === 'register') {
-      result = handleRegister(body.username, body.password);
+      result = await handleRegister(body.username, body.password);
     } else {
       return NextResponse.json({ code: -1, message: '未知 action' }, { status: 400 });
     }

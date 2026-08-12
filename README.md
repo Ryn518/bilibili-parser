@@ -1,6 +1,6 @@
-# B站课表规划器 v2.0.1
+# B站课表规划器 v2.1.0
 
-Next.js 全栈版：粘贴 B 站课程链接，自动解析分 P 与时长，按每日学习时长生成学习计划。**完全免费**，登录后可保存课程与进度。
+Next.js 全栈版：粘贴 B 站课程链接，自动解析分 P 与时长，按每日学习时长生成学习计划。**完全免费**，登录后可保存课程与进度，配置数据库后支持**跨设备云同步**。
 
 ## 技术栈
 
@@ -59,12 +59,24 @@ plan/
 | `POST /api/auth?action=login\|register` | 登录注册 |
 | `GET /api/auth?action=me` | 会话校验 |
 | `POST /api/feedback` | 用户反馈 |
+| `GET /api/sync` | 拉取云端课程与进度（需登录 + DATABASE_URL） |
+| `PUT /api/sync` | 上传云端课程与进度 |
+| `DELETE /api/sync?bvid=` | 删除云端某门课 |
+
+## 跨设备云同步（Supabase）
+
+1. 在 [Supabase](https://supabase.com) 创建免费项目
+2. 复制 **Database URL**（Transaction pooler）到 `.env` 的 `DATABASE_URL`
+3. 可选：在 SQL Editor 执行 `scripts/init-db.sql`（不执行也会自动建表）
+4. Vercel 环境变量添加 `DATABASE_URL` 后 Redeploy
+
+配置完成后：用户注册/登录走云端数据库，课程与打卡进度会在登录时自动同步。
 
 ## 部署到 Vercel
 
 1. 推送代码到 GitHub
 2. [vercel.com](https://vercel.com) → Import 仓库
-3. 配置环境变量：`AUTH_SECRET`、`ADMIN_USER`、`ADMIN_PASS`（可选）
+3. 配置环境变量：`AUTH_SECRET`、`ADMIN_USER`、`ADMIN_PASS`（可选）、`DATABASE_URL`（云同步）
 4. Deploy
 
 > Vercel Serverless 环境下 `data/*.json` 写入不持久，适合演示与推广；用户课程数据主要存在浏览器 localStorage。

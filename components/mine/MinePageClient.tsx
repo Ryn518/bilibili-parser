@@ -20,7 +20,7 @@ export function MinePageClient() {
       return;
     }
     setRecords(loadAllProgress());
-  }, [auth.loading, auth.session?.username]);
+  }, [auth.loading, auth.session?.username, auth.session?.userId]);
 
   const entries = Object.entries(records);
 
@@ -32,7 +32,16 @@ export function MinePageClient() {
     }
   };
 
-  const removeCourse = (bvid: string) => {
+  const removeCourse = async (bvid: string) => {
+    try {
+      if (auth.session?.userId) {
+        const { deleteCloudCourse } = await import('@/lib/cloud-sync');
+        await deleteCloudCourse(bvid);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '删除失败');
+      return;
+    }
     const all = loadAllProgress();
     delete all[bvid];
     saveAllProgress(all);

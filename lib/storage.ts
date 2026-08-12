@@ -144,6 +144,7 @@ export function loadAllProgress(): Record<string, import('./types').ProgressReco
 export function saveAllProgress(data: Record<string, import('./types').ProgressRecord>): void {
   if (currentStorageUser) {
     setStorageItem(scopedKey(CONFIG.STORAGE_KEY), data);
+    void import('./cloud-sync').then((m) => m.scheduleCloudPush());
   } else {
     setSessionStorageItem(CONFIG.GUEST_PROGRESS_KEY, data);
   }
@@ -159,6 +160,7 @@ export function loadPlanCache(): import('./types').PlanCache | null {
 export function savePlanCache(cache: import('./types').PlanCache): void {
   if (currentStorageUser) {
     setStorageItem(scopedKey(CONFIG.PLAN_CACHE_KEY), cache);
+    void import('./cloud-sync').then((m) => m.scheduleCloudPush());
   } else {
     setSessionStorageItem(CONFIG.GUEST_PLAN_KEY, cache);
   }
@@ -194,6 +196,7 @@ export function dismissContinueBanner(bvid: string): void {
     const map = getStorageItem<Record<string, boolean>>(scopedKey(CONFIG.CONTINUE_DISMISS_KEY), {});
     map[bvid] = true;
     setStorageItem(scopedKey(CONFIG.CONTINUE_DISMISS_KEY), map);
+    void import('./cloud-sync').then((m) => m.scheduleCloudPush());
     return;
   }
   const map = getSessionStorageItem<Record<string, boolean>>(CONFIG.GUEST_DISMISS_KEY, {});
