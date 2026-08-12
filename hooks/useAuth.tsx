@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { CONFIG } from '@/lib/config';
-import { authApi, type SessionData } from '@/lib/auth-client';
+import { authApi, type RegisterResult, type SessionData } from '@/lib/auth-client';
+import { getLocalAuthRecord, hasLocalAuthRecord, saveLocalAuthRecord } from '@/lib/auth-local';
 import { clearUserSessionPlanKeys, getStorageItem, removeStorageItem, setStorageItem, setStorageUser } from '@/lib/storage';
 
 interface AuthContextValue {
@@ -74,16 +75,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (username: string, password: string) => {
-    const res = await authApi<SessionData>('login', { username, password });
+    const authRecord = getLocalAuthRecord(username) || undefined;
+    const res = await authApi<SessionData>('login', { username, password, authRecord });
     if (res.code !== 0 || !res.data) return res.message || '登录失败';
     saveSessionData(res.data);
     return null;
   };
 
   const register = async (username: string, password: string) => {
-    const res = await authApi<SessionData>('register', { username, password });
+    if (hasLocalAuthRecord(username)) {
+      return '本机已有该用户名，请直接登录';
+    }
+    const res = await authApi<RegisterResult>('register', { username, password });
     if (res.code !== 0 || !res.data) return res.message || '注册失败';
-    saveSessionData(res.data);
+    if (res.data.authRecord) {
+      saveLocalAuthRecord(username, res.data.authRecord);
+    }
+    const { authRecord: _ignored, ...session } = res.data;
+    saveSessionData(session);
     return null;
   };
 

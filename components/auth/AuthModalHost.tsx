@@ -98,7 +98,7 @@ export function AuthModalHost() {
         <p className="mt-3 text-center text-xs leading-relaxed text-text3">
           登录后可保存课程与进度到「我的课程」
           <br />
-          密码至少 6 位，服务端加密存储
+          密码至少 6 位；线上版账号凭证保存在本机浏览器
         </p>
         <button type="button" onClick={closeAuth} className="mt-3 w-full rounded-[10px] border border-border py-2 text-sm text-text2">
           取消

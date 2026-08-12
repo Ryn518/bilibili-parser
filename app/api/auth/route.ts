@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     let result;
 
     if (action === 'login') {
-      result = handleLogin(body.username, body.password);
+      result = handleLogin(body.username, body.password, body.authRecord);
     } else if (action === 'register') {
       result = handleRegister(body.username, body.password);
     } else {
@@ -45,7 +45,11 @@ export async function POST(req: NextRequest) {
     if (result.error) {
       return NextResponse.json({ code: -1, message: result.error }, { status: result.status });
     }
-    return NextResponse.json({ code: 0, data: result.data });
+    const payload =
+      'authRecord' in result && result.authRecord
+        ? { ...result.data, authRecord: result.authRecord }
+        : result.data;
+    return NextResponse.json({ code: 0, data: payload });
   } catch (err) {
     const error = err as Error;
     const msg = error.message?.includes('AUTH_SECRET')

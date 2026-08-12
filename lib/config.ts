@@ -7,5 +7,6 @@ export const CONFIG = {
   GUEST_PROGRESS_KEY: 'bili-guest-progress',
   GUEST_DISMISS_KEY: 'bili-guest-continue-dismiss',
   PLAN_EXPIRE_DAYS: 7,
-  CACHE_TTL: 30 * 60 * 1000
+  CACHE_TTL: 30 * 60 * 1000,
+  AUTH_RECORDS_KEY: 'bili-planner-auth-records'
 } as const;

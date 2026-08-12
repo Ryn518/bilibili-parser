@@ -51,6 +51,23 @@ function saveUsers(users: Record<string, unknown>) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
 }
 
+function canPersistUsersToDisk() {
+  if (process.env.VERCEL === '1') return false;
+  try {
+    const dir = path.dirname(USERS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.accessSync(dir, fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface AuthCredentialRecord {
+  salt: string;
+  hash: string;
+}
+
 function signToken(payload: object) {
   const secret = getAuthSecret();
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -82,7 +99,11 @@ function issueSession(username: string, role: 'user' | 'admin') {
   return { token, username, role, expiresAt: exp };
 }
 
-export function handleLogin(username: string, password: string) {
+export function handleLogin(
+  username: string,
+  password: string,
+  clientRecord?: AuthCredentialRecord | null
+) {
   username = normalizeUsername(username);
   if (!username || !password) {
     return { error: '请输入用户名和密码', status: 400 };
@@ -100,7 +121,18 @@ export function handleLogin(username: string, password: string) {
 
   const users = loadUsers();
   const user = users[username];
-  if (!user || !verifyPassword(password, user)) {
+  if (user && verifyPassword(password, user)) {
+    return { data: issueSession(username, 'user') };
+  }
+
+  if (canPersistUsersToDisk()) {
+    return { error: '用户名或密码错误', status: 401 };
+  }
+
+  if (!clientRecord?.salt || !clientRecord?.hash) {
+    return { error: '本机未找到该账号，请先注册', status: 401 };
+  }
+  if (!verifyPassword(password, clientRecord)) {
     return { error: '用户名或密码错误', status: 401 };
   }
   return { data: issueSession(username, 'user') };
@@ -119,9 +151,22 @@ export function handleRegister(username: string, password: string) {
   const users = loadUsers();
   if (users[username]) return { error: '用户名已存在', status: 409 };
 
-  users[username] = { ...createPasswordRecord(password), createdAt: Date.now() };
-  saveUsers(users);
-  return { data: issueSession(username, 'user') };
+  const record = { ...createPasswordRecord(password), createdAt: Date.now() };
+
+  if (canPersistUsersToDisk()) {
+    users[username] = record;
+    try {
+      saveUsers(users);
+    } catch {
+      return { error: '注册暂时不可用，请稍后再试', status: 503 };
+    }
+    return { data: issueSession(username, 'user') };
+  }
+
+  return {
+    data: issueSession(username, 'user'),
+    authRecord: { salt: record.salt, hash: record.hash }
+  };
 }
 
 export function handleMe(token: string) {
