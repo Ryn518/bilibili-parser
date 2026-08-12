@@ -15,6 +15,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "html2canvas": "^1.4.1",
     "next": "^14.2.18",
     "postgres": "^3.4.9",
