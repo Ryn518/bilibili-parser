@@ -1,11 +1,13 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { Course, PlanCache, PlanDay, ProgressRecord } from '@/lib/types';
 import { generatePlan } from '@/lib/planner';
 import { fetchCourse } from '@/lib/bilibili-client';
 import { parsePasteInput } from '@/lib/bvid';
 import { normalizeCover } from '@/lib/format';
+import { CONFIG } from '@/lib/config';
 import {
   activePlanSessionKey,
   clearPlanCache,
@@ -16,7 +18,8 @@ import {
   loadAllProgress,
   loadPlanCache,
   saveAllProgress,
-  savePlanCache
+  savePlanCache,
+  setStorageUser
 } from '@/lib/storage';
 import { findProgressEntry, resolveCourseCover } from '@/components/plan/plan-utils';
 import { restoreCourseForMine } from '@/lib/course-restore';
@@ -62,6 +65,7 @@ function cacheToCourse(cache: PlanCache, saved?: Pick<ProgressRecord, 'cover'>):
 
 export function PlanPage() {
   const auth = useAuth();
+  const searchParams = useSearchParams();
   const showToast = useToast();
   const authRef = useRef(auth);
   authRef.current = auth;
@@ -147,26 +151,38 @@ export function PlanPage() {
   );
 
   const bootstrappedRef = useRef(false);
-  const courseRestoreRef = useRef(false);
+  const restoringRef = useRef(false);
+  const restoredKeyRef = useRef<string | null>(null);
   const lastAuthUserRef = useRef<string | null>(null);
+
+  const resolveCourseParam = useCallback(() => {
+    const fromUrl = searchParams.get('course')?.trim();
+    if (fromUrl) return fromUrl;
+    if (typeof window === 'undefined') return '';
+    return sessionStorage.getItem(CONFIG.PENDING_COURSE_KEY)?.trim() || '';
+  }, [searchParams]);
 
   useEffect(() => {
     if (auth.loading || !auth.storageReady) return;
 
-    const params = new URLSearchParams(window.location.search);
-    const courseParam = params.get('course')?.trim();
-    if (!courseParam || courseRestoreRef.current) return;
+    const courseParam = resolveCourseParam();
+    if (!courseParam) return;
 
-    courseRestoreRef.current = true;
+    const username = auth.session?.username ?? null;
+    if (username) setStorageUser(username);
+
+    const restoreKey = `${courseParam}:${username || 'guest'}:${auth.session?.userId || ''}`;
+    if (restoredKeyRef.current === restoreKey || restoringRef.current) return;
+
+    restoringRef.current = true;
     bootstrappedRef.current = true;
-    window.history.replaceState(null, '', '/');
 
     void (async () => {
       setLoading(true);
       try {
         const ok = await restoreCourseForMine({
           bvid: courseParam,
-          username: auth.session?.username ?? null,
+          username,
           token: auth.session?.token,
           userId: auth.session?.userId,
           restoreFromCache: (cache, opts) => restoreFromCache(cache, opts),
@@ -174,12 +190,19 @@ export function PlanPage() {
             renderPlan(courseData, planData, dailyMin, completedDays);
           }
         });
-        if (ok) showToast('已恢复课程');
-        else {
+        if (ok) {
+          restoredKeyRef.current = restoreKey;
+          sessionStorage.removeItem(CONFIG.PENDING_COURSE_KEY);
+          if (typeof window !== 'undefined' && window.location.search.includes('course=')) {
+            window.history.replaceState(null, '', '/');
+          }
+          showToast('已恢复课程');
+        } else {
           showToast('无法恢复课程，请重新规划');
           setShowResults(false);
         }
       } finally {
+        restoringRef.current = false;
         setLoading(false);
       }
     })();
@@ -189,6 +212,7 @@ export function PlanPage() {
     auth.session?.username,
     auth.session?.token,
     auth.session?.userId,
+    resolveCourseParam,
     restoreFromCache,
     renderPlan,
     showToast
@@ -196,8 +220,8 @@ export function PlanPage() {
 
   useEffect(() => {
     if (auth.loading || !auth.storageReady) return;
-    if (courseRestoreRef.current) return;
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('course')) return;
+    if (restoringRef.current || restoredKeyRef.current) return;
+    if (resolveCourseParam()) return;
 
     const username = auth.session?.username ?? null;
     if (username !== lastAuthUserRef.current) {
@@ -234,7 +258,7 @@ export function PlanPage() {
     if (cache?.bvid && cache.plan?.length && !isContinueDismissed(cache.bvid)) {
       setContinueCache(cache);
     }
-  }, [auth.loading, auth.storageReady, auth.session?.username, restoreFromCache, showToast]);
+  }, [auth.loading, auth.storageReady, auth.session?.username, resolveCourseParam, restoreFromCache, showToast]);
 
   const startPlanning = useCallback(
     async (url: string) => {

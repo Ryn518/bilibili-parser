@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { CONFIG } from '@/lib/config';
 import { loadAllProgress, saveAllProgress } from '@/lib/storage';
 import { formatDuration } from '@/lib/format';
 import { normalizePlanDays } from '@/lib/plan-normalize';
@@ -26,6 +27,7 @@ export function MinePageClient() {
   const entries = Object.entries(records);
 
   const openCourse = (bvid: string) => {
+    sessionStorage.setItem(CONFIG.PENDING_COURSE_KEY, bvid);
     router.push(`/?course=${encodeURIComponent(bvid)}`);
   };
 
