@@ -18,7 +18,8 @@ import {
   saveAllProgress,
   savePlanCache
 } from '@/lib/storage';
-import { resolveCourseCover } from '@/components/plan/plan-utils';
+import { findProgressEntry, resolveCourseCover } from '@/components/plan/plan-utils';
+import { restoreCourseForMine } from '@/lib/course-restore';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import { LandingHero } from '@/components/plan/LandingHero';
@@ -89,15 +90,20 @@ export function PlanPage() {
   );
 
   const renderPlan = useCallback(
-    (courseData: Course, planData: PlanDay[], dailyMin: number) => {
+    (courseData: Course, planData: PlanDay[], dailyMin: number, completedOverride?: number[]) => {
       const normalized: Course = {
         ...courseData,
         cover: normalizeCover(courseData.cover || '')
       };
       setCourse(normalized);
       setPlan(planData);
-      const saved = loadAllProgress()[normalized.bvid];
-      setProgress({ completedDays: saved?.completedDays || [] });
+      const found = findProgressEntry(loadAllProgress(), normalized.bvid);
+      const saved = found?.[1];
+      const completedDays =
+        completedOverride ??
+        saved?.completedDays ??
+        [];
+      setProgress({ completedDays });
       setShowResults(true);
 
       const cache: PlanCache = {
@@ -112,8 +118,8 @@ export function PlanPage() {
       };
       savePlanCache(cache);
       persistProgress(
-        normalized.bvid,
-        { dailyMin, title: normalized.title, cover: normalized.cover },
+        found?.[0] || normalized.bvid,
+        { dailyMin, title: normalized.title, cover: normalized.cover, completedDays },
         cache
       );
       sessionStorage.setItem(activePlanSessionKey(authRef.current.session?.username), normalized.bvid);
@@ -126,21 +132,78 @@ export function PlanPage() {
   );
 
   const restoreFromCache = useCallback(
-    (cache: PlanCache) => {
-      if (!cache?.plan?.length || isPlanCacheExpired(cache)) return;
-      const saved = loadAllProgress()[cache.bvid];
+    (cache: PlanCache, opts?: { ignoreExpiry?: boolean }) => {
+      if (!cache?.plan?.length) return false;
+      if (!opts?.ignoreExpiry && isPlanCacheExpired(cache)) return false;
+      const found = findProgressEntry(loadAllProgress(), cache.bvid);
+      const saved = found?.[1];
       const coverUrl = resolveCourseCover(cache, saved);
       const enriched: PlanCache = coverUrl && !cache.coverUrl ? { ...cache, coverUrl } : cache;
       setDailyMinutes(enriched.dailyMinutes);
       renderPlan(cacheToCourse(enriched, saved), enriched.plan, enriched.dailyMinutes);
+      return true;
     },
     [renderPlan]
   );
 
+  const bootstrappedRef = useRef(false);
+  const courseRestoreRef = useRef(false);
+  const lastAuthUserRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (auth.loading) return;
+    if (auth.loading || !auth.storageReady) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const courseParam = params.get('course')?.trim();
+    if (!courseParam || courseRestoreRef.current) return;
+
+    courseRestoreRef.current = true;
+    bootstrappedRef.current = true;
+    window.history.replaceState(null, '', '/');
+
+    void (async () => {
+      setLoading(true);
+      try {
+        const ok = await restoreCourseForMine({
+          bvid: courseParam,
+          username: auth.session?.username ?? null,
+          token: auth.session?.token,
+          userId: auth.session?.userId,
+          restoreFromCache: (cache, opts) => restoreFromCache(cache, opts),
+          renderFromApi: (courseData, planData, dailyMin, completedDays) => {
+            renderPlan(courseData, planData, dailyMin, completedDays);
+          }
+        });
+        if (ok) showToast('已恢复课程');
+        else {
+          showToast('无法恢复课程，请重新规划');
+          setShowResults(false);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [
+    auth.loading,
+    auth.storageReady,
+    auth.session?.username,
+    auth.session?.token,
+    auth.session?.userId,
+    restoreFromCache,
+    renderPlan,
+    showToast
+  ]);
+
+  useEffect(() => {
+    if (auth.loading || !auth.storageReady) return;
+    if (courseRestoreRef.current) return;
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('course')) return;
 
     const username = auth.session?.username ?? null;
+    if (username !== lastAuthUserRef.current) {
+      bootstrappedRef.current = false;
+      lastAuthUserRef.current = username;
+    }
 
     const resetToHome = () => {
       setCourse(null);
@@ -150,20 +213,8 @@ export function PlanPage() {
       setContinueCache(null);
     };
 
-    const restoreRaw = sessionStorage.getItem('bili-restore-cache');
-    if (restoreRaw) {
-      sessionStorage.removeItem('bili-restore-cache');
-      try {
-        const parsed = JSON.parse(restoreRaw) as PlanCache;
-        if (!isPlanCacheExpired(parsed)) {
-          restoreFromCache(parsed);
-          showToast('已恢复课程');
-          return;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
 
     resetToHome();
 
@@ -183,7 +234,7 @@ export function PlanPage() {
     if (cache?.bvid && cache.plan?.length && !isContinueDismissed(cache.bvid)) {
       setContinueCache(cache);
     }
-  }, [auth.loading, auth.session?.username, restoreFromCache, showToast]);
+  }, [auth.loading, auth.storageReady, auth.session?.username, restoreFromCache, showToast]);
 
   const startPlanning = useCallback(
     async (url: string) => {

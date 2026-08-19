@@ -1,6 +1,7 @@
 'use client';
 
 import { CONFIG } from './config';
+import { normalizePlanDays } from './plan-normalize';
 import type { PlanCache, ProgressRecord } from './types';
 import { getStorageItem, setStorageItem } from './storage';
 
@@ -66,6 +67,31 @@ function applyPayloadToLocal(username: string, payload: CloudSyncPayload) {
   writeContinueDismiss(username, payload.continueDismiss || {});
 }
 
+function mergeProgressRecord(local: ProgressRecord, remote: ProgressRecord): ProgressRecord {
+  const localTs = local.updatedAt || 0;
+  const remoteTs = remote.updatedAt || 0;
+  const newer = localTs >= remoteTs ? local : remote;
+  const older = newer === local ? remote : local;
+
+  const localSnap = normalizePlanDays(local.planSnapshot?.plan).length ? local.planSnapshot : null;
+  const remoteSnap = normalizePlanDays(remote.planSnapshot?.plan).length ? remote.planSnapshot : null;
+  const planSnapshot = localSnap || remoteSnap || newer.planSnapshot || older.planSnapshot;
+
+  const completedDays = Array.from(
+    new Set([...(newer.completedDays || []), ...(older.completedDays || [])])
+  ).sort((a, b) => a - b);
+
+  return {
+    ...newer,
+    title: newer.title || older.title,
+    cover: newer.cover || older.cover,
+    dailyMin: newer.dailyMin ?? older.dailyMin,
+    planSnapshot,
+    completedDays,
+    updatedAt: Math.max(localTs, remoteTs)
+  };
+}
+
 function mergeProgress(
   local: Record<string, ProgressRecord>,
   remote: Record<string, ProgressRecord>
@@ -73,10 +99,10 @@ function mergeProgress(
   const merged: Record<string, ProgressRecord> = { ...remote };
   for (const [bvid, localRec] of Object.entries(local)) {
     const remoteRec = merged[bvid];
-    const localTs = localRec.updatedAt || 0;
-    const remoteTs = remoteRec?.updatedAt || 0;
-    if (!remoteRec || localTs >= remoteTs) {
+    if (!remoteRec) {
       merged[bvid] = localRec;
+    } else {
+      merged[bvid] = mergeProgressRecord(localRec, remoteRec);
     }
   }
   return merged;

@@ -1,4 +1,5 @@
 import type { PlanCache, ProgressRecord } from '@/lib/types';
+import { normalizePlanDays } from '@/lib/plan-normalize';
 import { ensureSchema, getSql, isDatabaseConfigured } from './db';
 
 export interface CloudSyncPayload {
@@ -17,13 +18,18 @@ function rowToProgress(row: {
   plan_snapshot: PlanCache | null;
   updated_at: number;
 }): ProgressRecord {
+  const snap = row.plan_snapshot;
+  const planSnapshot =
+    snap && normalizePlanDays(snap.plan).length
+      ? { ...snap, plan: normalizePlanDays(snap.plan) }
+      : snap ?? undefined;
   return {
     completedDays: Array.isArray(row.completed_days) ? row.completed_days : [],
     dailyMin: row.daily_min ?? undefined,
     title: row.title ?? undefined,
     cover: row.cover ?? undefined,
     updatedAt: Number(row.updated_at) || 0,
-    planSnapshot: row.plan_snapshot ?? undefined
+    planSnapshot
   };
 }
 

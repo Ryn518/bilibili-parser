@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { loadAllProgress, saveAllProgress } from '@/lib/storage';
 import { formatDuration } from '@/lib/format';
-import { openCourseFromHistory, resolveCourseCover } from '@/components/plan/plan-utils';
+import { normalizePlanDays } from '@/lib/plan-normalize';
+import { resolveCourseCover } from '@/components/plan/plan-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { CoverImage } from '@/components/ui/CoverImage';
 
@@ -14,22 +15,18 @@ export function MinePageClient() {
   const [records, setRecords] = useState<Record<string, import('@/lib/types').ProgressRecord>>({});
 
   useEffect(() => {
-    if (auth.loading) return;
+    if (auth.loading || !auth.storageReady) return;
     if (!auth.session?.username) {
       setRecords({});
       return;
     }
     setRecords(loadAllProgress());
-  }, [auth.loading, auth.session?.username, auth.session?.userId]);
+  }, [auth.loading, auth.storageReady, auth.session?.username, auth.session?.userId]);
 
   const entries = Object.entries(records);
 
-  const openCourse = (bvid: string, dailyMin: number) => {
-    const cache = openCourseFromHistory(bvid, dailyMin);
-    if (cache) {
-      sessionStorage.setItem('bili-restore-cache', JSON.stringify(cache));
-      router.push('/');
-    }
+  const openCourse = (bvid: string) => {
+    router.push(`/?course=${encodeURIComponent(bvid)}`);
   };
 
   const removeCourse = async (bvid: string) => {
@@ -59,14 +56,14 @@ export function MinePageClient() {
         <div className="grid gap-3">
           {entries.map(([bvid, rec]) => {
             const done = rec.completedDays?.length || 0;
-            const total = rec.planSnapshot?.plan?.length || 0;
+            const total = rec.planSnapshot ? normalizePlanDays(rec.planSnapshot.plan).length : 0;
             const pct = total ? Math.round((done / total) * 100) : 0;
             const cover = resolveCourseCover(rec.planSnapshot, rec);
             return (
               <div
                 key={bvid}
                 className="flex cursor-pointer items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-card transition hover:border-accent/40 hover:shadow-lg"
-                onClick={() => openCourse(bvid, rec.dailyMin || rec.planSnapshot?.dailyMinutes || 45)}
+                onClick={() => openCourse(bvid)}
               >
                 <CoverImage
                   src={cover}

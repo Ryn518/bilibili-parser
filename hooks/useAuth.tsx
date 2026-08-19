@@ -10,6 +10,8 @@ import { clearUserSessionPlanKeys, getStorageItem, removeStorageItem, setStorage
 interface AuthContextValue {
   session: SessionData | null;
   loading: boolean;
+  /** 会话与本地存储命名空间已对齐（含云同步拉取完成或跳过） */
+  storageReady: boolean;
   isAdmin: boolean;
   login: (username: string, password: string) => Promise<string | null>;
   register: (username: string, password: string) => Promise<string | null>;
@@ -29,6 +31,7 @@ function getSession(): SessionData | null {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [storageReady, setStorageReady] = useState(false);
 
   const syncUserStorage = useCallback((username: string | null) => {
     setStorageUser(username);
@@ -90,7 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [syncUserStorage]);
 
   useEffect(() => {
-    refreshSession().finally(() => setLoading(false));
+    setStorageReady(false);
+    refreshSession().finally(() => {
+      setLoading(false);
+      setStorageReady(true);
+    });
   }, [refreshSession]);
 
   const isAdmin = session?.role === 'admin';
@@ -151,13 +158,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       session,
       loading,
+      storageReady,
       isAdmin,
       login,
       register,
       logout,
       refreshSession
     }),
-    [session, loading, isAdmin, login, register, logout, refreshSession]
+    [session, loading, storageReady, isAdmin, login, register, logout, refreshSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
