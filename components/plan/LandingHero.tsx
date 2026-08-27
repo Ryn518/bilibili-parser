@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { parsePasteInput } from '@/lib/bvid';
+import { clampDailyMinutes } from '@/lib/planner';
 import { usePlan } from '@/components/plan/PlanPage';
+import { PlanSettingsRow, type PlanInputMode } from '@/components/plan/PlanSettingsRow';
+import { useToast } from '@/hooks/useToast';
 
 interface Props {
   continueCache: { title: string; bvid: string } | null;
@@ -10,23 +13,34 @@ interface Props {
   onDismissContinue: () => void;
 }
 
-function clampDaily(n: number) {
-  if (!Number.isFinite(n) || n <= 0) return 45;
-  return Math.max(10, Math.min(480, Math.round(n)));
-}
-
 export function LandingHero({ continueCache, onContinue, onDismissContinue }: Props) {
-  const { dailyMinutes, setDailyMinutes, startPlanning, loading } = usePlan();
+  const {
+    dailyMinutes,
+    setDailyMinutes,
+    playbackSpeed,
+    setPlaybackSpeed,
+    targetDays,
+    startPlanning,
+    loading
+  } = usePlan();
+  const showToast = useToast();
   const [url, setUrl] = useState('');
   const [hint, setHint] = useState('');
   const [dailyDraft, setDailyDraft] = useState(String(dailyMinutes));
+  const [daysDraft, setDaysDraft] = useState(targetDays ? String(targetDays) : '');
+  const [mode, setMode] = useState<PlanInputMode>(targetDays ? 'days' : 'daily');
 
   useEffect(() => {
     setDailyDraft(String(dailyMinutes));
   }, [dailyMinutes]);
 
+  useEffect(() => {
+    setDaysDraft(targetDays ? String(targetDays) : '');
+    if (targetDays) setMode('days');
+  }, [targetDays]);
+
   const commitDaily = () => {
-    const next = clampDaily(Number(dailyDraft));
+    const next = clampDailyMinutes(Number(dailyDraft));
     setDailyMinutes(next);
     setDailyDraft(String(next));
     return next;
@@ -51,8 +65,25 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
 
   const submit = () => {
     if (loading) return;
-    commitDaily();
-    startPlanning(url);
+    if (mode === 'days') {
+      const days = Number(daysDraft);
+      if (!daysDraft.trim() || !Number.isFinite(days) || days <= 0) {
+        showToast('请填写想几天学完，或改选每天学习分钟');
+        return;
+      }
+      startPlanning(url, {
+        dailyMinutes,
+        targetDays: days,
+        playbackSpeed
+      });
+      return;
+    }
+    const nextDaily = commitDaily();
+    startPlanning(url, {
+      dailyMinutes: nextDaily,
+      targetDays: null,
+      playbackSpeed
+    });
   };
 
   return (
@@ -128,28 +159,18 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
         </p>
       )}
 
-      <div className="mt-4 inline-flex items-center gap-2 text-sm text-text2">
-        <label htmlFor="dailyMinInput">每天学习</label>
-        <input
-          id="dailyMinInput"
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={dailyDraft}
-          onChange={(e) => setDailyDraft(e.target.value.replace(/[^\d]/g, ''))}
-          onBlur={commitDaily}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              commitDaily();
-            }
-          }}
-          className="daily-min-input w-[72px] rounded-lg border border-border bg-surface px-2 py-1.5 text-center text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-          aria-label="每天学习分钟数，可直接输入"
-        />
-        <span>分钟</span>
-        <span className="text-xs text-text3 max-md:hidden">（10–480，可直接键盘输入）</span>
-      </div>
+      <PlanSettingsRow
+        mode={mode}
+        onModeChange={setMode}
+        dailyDraft={dailyDraft}
+        onDailyDraftChange={setDailyDraft}
+        onDailyCommit={commitDaily}
+        daysDraft={daysDraft}
+        onDaysDraftChange={setDaysDraft}
+        playbackSpeed={playbackSpeed}
+        onPlaybackSpeedChange={setPlaybackSpeed}
+        radioName="landing-plan-mode"
+      />
     </section>
   );
 }

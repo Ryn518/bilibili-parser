@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Course, PlanCache, PlanDay, ProgressRecord } from '@/lib/types';
-import { generatePlan } from '@/lib/planner';
+import { generatePlan, clampDailyMinutes, clampPlaybackSpeed, clampTargetDays, videoBudgetMinutes, wallClockMinutesFromTargetDays } from '@/lib/planner';
 import { fetchCourse } from '@/lib/bilibili-client';
 import { parsePasteInput } from '@/lib/bvid';
 import { normalizeCover } from '@/lib/format';
@@ -35,12 +35,23 @@ interface PlanContextValue {
   progress: ProgressRecord;
   dailyMinutes: number;
   setDailyMinutes: (n: number) => void;
+  playbackSpeed: number;
+  setPlaybackSpeed: (n: number) => void;
+  targetDays: number | null;
   loading: boolean;
   showResults: boolean;
-  startPlanning: (url: string) => Promise<void>;
+  startPlanning: (
+    url: string,
+    opts?: { dailyMinutes?: number; targetDays?: number | null; playbackSpeed?: number }
+  ) => Promise<void>;
   restoreFromCache: (cache: PlanCache) => void;
   toggleDayComplete: (day: number) => void;
   replanDailyMinutes: (minutes: number) => void;
+  replanSchedule: (opts: {
+    dailyMinutes: number;
+    playbackSpeed: number;
+    targetDays?: number | null;
+  }) => void;
   replan: () => void;
   backToHome: () => void;
 }
@@ -74,6 +85,8 @@ export function PlanPage() {
   const [plan, setPlan] = useState<PlanDay[]>([]);
   const [progress, setProgress] = useState<ProgressRecord>({ completedDays: [] });
   const [dailyMinutes, setDailyMinutes] = useState(45);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [targetDays, setTargetDays] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [continueCache, setContinueCache] = useState<PlanCache | null>(null);
@@ -94,7 +107,13 @@ export function PlanPage() {
   );
 
   const renderPlan = useCallback(
-    (courseData: Course, planData: PlanDay[], dailyMin: number, completedOverride?: number[]) => {
+    (
+      courseData: Course,
+      planData: PlanDay[],
+      dailyMin: number,
+      completedOverride?: number[],
+      extras?: { playbackSpeed?: number; targetDays?: number | null }
+    ) => {
       const normalized: Course = {
         ...courseData,
         cover: normalizeCover(courseData.cover || '')
@@ -110,6 +129,11 @@ export function PlanPage() {
       setProgress({ completedDays });
       setShowResults(true);
 
+      const speed = extras?.playbackSpeed ?? playbackSpeed;
+      const days = extras?.targetDays !== undefined ? extras.targetDays : targetDays;
+      if (extras?.playbackSpeed != null) setPlaybackSpeed(clampPlaybackSpeed(extras.playbackSpeed));
+      if (extras?.targetDays !== undefined) setTargetDays(extras.targetDays);
+
       const cache: PlanCache = {
         bvid: normalized.bvid,
         title: normalized.title,
@@ -117,6 +141,8 @@ export function PlanPage() {
         pList: normalized.episodes,
         plan: planData,
         dailyMinutes: dailyMin,
+        playbackSpeed: speed,
+        targetDays: days,
         generatedAt: new Date().toISOString().slice(0, 10),
         coverUrl: normalized.cover
       };
@@ -132,7 +158,7 @@ export function PlanPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     },
-    [persistProgress]
+    [persistProgress, playbackSpeed, targetDays]
   );
 
   const restoreFromCache = useCallback(
@@ -144,7 +170,12 @@ export function PlanPage() {
       const coverUrl = resolveCourseCover(cache, saved);
       const enriched: PlanCache = coverUrl && !cache.coverUrl ? { ...cache, coverUrl } : cache;
       setDailyMinutes(enriched.dailyMinutes);
-      renderPlan(cacheToCourse(enriched, saved), enriched.plan, enriched.dailyMinutes);
+      setPlaybackSpeed(clampPlaybackSpeed(enriched.playbackSpeed ?? 1));
+      setTargetDays(enriched.targetDays ?? null);
+      renderPlan(cacheToCourse(enriched, saved), enriched.plan, enriched.dailyMinutes, undefined, {
+        playbackSpeed: enriched.playbackSpeed ?? 1,
+        targetDays: enriched.targetDays ?? null
+      });
       return true;
     },
     [renderPlan]
@@ -186,8 +217,8 @@ export function PlanPage() {
           token: auth.session?.token,
           userId: auth.session?.userId,
           restoreFromCache: (cache, opts) => restoreFromCache(cache, opts),
-          renderFromApi: (courseData, planData, dailyMin, completedDays) => {
-            renderPlan(courseData, planData, dailyMin, completedDays);
+          renderFromApi: (courseData, planData, dailyMin, completedDays, extras) => {
+            renderPlan(courseData, planData, dailyMin, completedDays, extras);
           }
         });
         if (ok) {
@@ -261,7 +292,10 @@ export function PlanPage() {
   }, [auth.loading, auth.storageReady, auth.session?.username, resolveCourseParam, restoreFromCache, showToast]);
 
   const startPlanning = useCallback(
-    async (url: string) => {
+    async (
+      url: string,
+      opts?: { dailyMinutes?: number; targetDays?: number | null; playbackSpeed?: number }
+    ) => {
       const trimmed = url.trim();
       if (!trimmed) {
         showToast('请输入课程链接');
@@ -282,15 +316,27 @@ export function PlanPage() {
       setLoading(true);
       try {
         const courseData = await fetchCourse(trimmed);
-        const dailyMin = Math.max(10, Math.min(480, dailyMinutes));
-        const planData = generatePlan(courseData.episodes, dailyMin);
+        const speed = clampPlaybackSpeed(opts?.playbackSpeed ?? playbackSpeed);
+        const days =
+          opts?.targetDays != null && opts.targetDays > 0 ? clampTargetDays(opts.targetDays) : null;
+        const wall = days
+          ? wallClockMinutesFromTargetDays(courseData.totalSeconds, days, speed)
+          : clampDailyMinutes(opts?.dailyMinutes ?? dailyMinutes);
+        const planData = generatePlan(courseData.episodes, videoBudgetMinutes(wall, speed));
         if (!planData.length) {
           showToast('未能生成课表，请检查课程分P数据');
           return;
         }
-        renderPlan(courseData, planData, dailyMin);
+        setDailyMinutes(wall);
+        setPlaybackSpeed(speed);
+        setTargetDays(days);
+        renderPlan(courseData, planData, wall, undefined, { playbackSpeed: speed, targetDays: days });
         if (!authRef.current.session) {
           showToast('课表已生成 · 登录后可保存到「我的课程」');
+        } else if (days) {
+          showToast(`已按 ${days} 天倒推：每天约 ${wall} 分钟 · ${speed}x，共 ${planData.length} 天`);
+        } else if (speed !== 1) {
+          showToast(`课表规划完成 · ${speed}x 每天 ${wall} 分钟约看 ${Math.round(wall * speed)} 分钟视频`);
         } else {
           showToast('课表规划完成');
         }
@@ -300,7 +346,7 @@ export function PlanPage() {
         setLoading(false);
       }
     },
-    [showToast, dailyMinutes, renderPlan]
+    [showToast, dailyMinutes, playbackSpeed, renderPlan]
   );
 
   const toggleDayComplete = useCallback(
@@ -318,11 +364,12 @@ export function PlanPage() {
     [course, persistProgress]
   );
 
-  const replanDailyMinutes = useCallback(
-    (minutes: number) => {
+  const applyReplan = useCallback(
+    (wall: number, speed: number, days: number | null) => {
       if (!course) return;
-      const m = Math.max(10, Math.min(480, Math.round(minutes) || 45));
-      const planData = generatePlan(course.episodes, m);
+      const m = clampDailyMinutes(wall);
+      const s = clampPlaybackSpeed(speed);
+      const planData = generatePlan(course.episodes, videoBudgetMinutes(m, s));
       if (!planData.length) {
         showToast('未能生成课表，请检查课程分P数据');
         return;
@@ -332,6 +379,8 @@ export function PlanPage() {
       const completedDays = (progress.completedDays || []).filter((d) => validDays.has(d));
 
       setDailyMinutes(m);
+      setPlaybackSpeed(s);
+      setTargetDays(days);
       setPlan(planData);
       setProgress((prev) => ({ ...prev, completedDays }));
 
@@ -342,14 +391,42 @@ export function PlanPage() {
         pList: course.episodes,
         plan: planData,
         dailyMinutes: m,
+        playbackSpeed: s,
+        targetDays: days,
         generatedAt: new Date().toISOString().slice(0, 10),
         coverUrl: course.cover
       };
       savePlanCache(cache);
       persistProgress(course.bvid, { dailyMin: m, completedDays }, cache);
-      showToast(`已按每天 ${m} 分钟重新规划，共 ${planData.length} 天`);
+      if (days) {
+        showToast(`已按 ${days} 天倒推：每天约 ${m} 分钟 · ${s}x，共 ${planData.length} 天`);
+      } else if (s !== 1) {
+        showToast(`已按每天 ${m} 分钟 · ${s}x 重新规划，共 ${planData.length} 天`);
+      } else {
+        showToast(`已按每天 ${m} 分钟重新规划，共 ${planData.length} 天`);
+      }
     },
     [course, progress.completedDays, showToast, persistProgress]
+  );
+
+  const replanDailyMinutes = useCallback(
+    (minutes: number) => {
+      applyReplan(minutes, playbackSpeed, null);
+    },
+    [applyReplan, playbackSpeed]
+  );
+
+  const replanSchedule = useCallback(
+    (opts: { dailyMinutes: number; playbackSpeed: number; targetDays?: number | null }) => {
+      if (!course) return;
+      const s = clampPlaybackSpeed(opts.playbackSpeed);
+      const days = opts.targetDays != null && opts.targetDays > 0 ? clampTargetDays(opts.targetDays) : null;
+      const wall = days
+        ? wallClockMinutesFromTargetDays(course.totalSeconds, days, s)
+        : clampDailyMinutes(opts.dailyMinutes);
+      applyReplan(wall, s, days);
+    },
+    [course, applyReplan]
   );
 
   const replan = useCallback(() => {
@@ -375,16 +452,20 @@ export function PlanPage() {
       progress,
       dailyMinutes,
       setDailyMinutes,
+      playbackSpeed,
+      setPlaybackSpeed,
+      targetDays,
       loading,
       showResults,
       startPlanning,
       restoreFromCache,
       toggleDayComplete,
       replanDailyMinutes,
+      replanSchedule,
       replan,
       backToHome
     }),
-    [course, plan, progress, dailyMinutes, loading, showResults, startPlanning, restoreFromCache, toggleDayComplete, replanDailyMinutes, replan, backToHome]
+    [course, plan, progress, dailyMinutes, playbackSpeed, targetDays, loading, showResults, startPlanning, restoreFromCache, toggleDayComplete, replanDailyMinutes, replanSchedule, replan, backToHome]
   );
 
   return (

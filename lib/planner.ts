@@ -78,8 +78,53 @@ export function describePartDetail(p: PlanPart): string {
 }
 
 export function getDayRecommend(day: PlanDay): string {
-  const { main } = getCatalogRange(day);
-  return `今日目标：${main}`;
+  return `今日目标：${day.pList.length} 个视频`;
+}
+
+export const PLAYBACK_SPEEDS = [1, 1.25, 1.5, 1.75, 2] as const;
+
+export function clampDailyMinutes(n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return 45;
+  return Math.max(10, Math.min(480, Math.round(n)));
+}
+
+export function clampTargetDays(n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return Math.max(1, Math.min(365, Math.round(n)));
+}
+
+export function clampPlaybackSpeed(n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  let best: (typeof PLAYBACK_SPEEDS)[number] = 1;
+  let dist = Infinity;
+  for (const speed of PLAYBACK_SPEEDS) {
+    const d = Math.abs(speed - n);
+    if (d < dist) {
+      dist = d;
+      best = speed;
+    }
+  }
+  return best;
+}
+
+/** 每天实际可消化的视频分钟数 = 投入时长 × 倍速 */
+export function videoBudgetMinutes(wallClockMin: number, speed: number): number {
+  const wall = clampDailyMinutes(wallClockMin);
+  const s = speed > 0 ? speed : 1;
+  return wall * s;
+}
+
+/** 按「几天学完」倒推每天需要投入的分钟（已含倍速） */
+export function wallClockMinutesFromTargetDays(
+  totalSeconds: number,
+  days: number,
+  speed: number
+): number {
+  const d = clampTargetDays(days);
+  const s = speed > 0 ? speed : 1;
+  const total = Math.max(0, totalSeconds);
+  const videoMinPerDay = total / d / 60;
+  return clampDailyMinutes(videoMinPerDay / s);
 }
 
 export function generatePlan(episodes: Episode[], dailyMin: number): PlanDay[] {

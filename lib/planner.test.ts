@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generatePlan } from './planner';
+import { generatePlan, videoBudgetMinutes, wallClockMinutesFromTargetDays } from './planner';
 import type { Episode } from './types';
 
 const sampleEpisodes: Episode[] = [
@@ -29,5 +29,25 @@ describe('generatePlan', () => {
       for (const part of day.pList) covered.add(part.index);
     }
     expect(covered.size).toBe(sampleEpisodes.length);
+  });
+});
+
+describe('plan settings helpers', () => {
+  it('video budget scales with playback speed', () => {
+    expect(videoBudgetMinutes(30, 1)).toBe(30);
+    expect(videoBudgetMinutes(30, 2)).toBe(60);
+    expect(videoBudgetMinutes(30, 1.5)).toBe(45);
+  });
+
+  it('higher speed yields fewer plan days for the same wall-clock minutes', () => {
+    const at1x = generatePlan(sampleEpisodes, videoBudgetMinutes(20, 1));
+    const at2x = generatePlan(sampleEpisodes, videoBudgetMinutes(20, 2));
+    expect(at2x.length).toBeLessThanOrEqual(at1x.length);
+  });
+
+  it('target days reverse-calculates wall-clock minutes including speed', () => {
+    const total = 10 * 3600;
+    expect(wallClockMinutesFromTargetDays(total, 10, 1)).toBe(60);
+    expect(wallClockMinutesFromTargetDays(total, 10, 2)).toBe(30);
   });
 });

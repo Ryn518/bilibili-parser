@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePlan } from '@/components/plan/PlanPage';
 import { formatDuration } from '@/lib/format';
-import { describePartDetail, getCatalogRange, getDayRecommend } from '@/lib/planner';
+import { describePartDetail, getCatalogRange, clampDailyMinutes } from '@/lib/planner';
 import { CardDownload } from '@/components/plan/CardDownload';
-import { useToast } from '@/hooks/useToast';
 import { CoverImage } from '@/components/ui/CoverImage';
+import { PlanSettingsRow, type PlanInputMode } from '@/components/plan/PlanSettingsRow';
+import { useToast } from '@/hooks/useToast';
 
 type Tab = 'overview' | 'today' | 'schedule' | 'extra';
 
@@ -17,22 +18,36 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'extra', label: '打卡', icon: '✨' }
 ];
 
-function clampDaily(n: number) {
-  if (!Number.isFinite(n) || n <= 0) return 45;
-  return Math.max(10, Math.min(480, Math.round(n)));
-}
-
 export function ResultsPanel() {
-  const { course, plan, progress, dailyMinutes, replanDailyMinutes, toggleDayComplete, replan, backToHome } = usePlan();
+  const {
+    course,
+    plan,
+    progress,
+    dailyMinutes,
+    playbackSpeed,
+    setPlaybackSpeed,
+    targetDays,
+    replanSchedule,
+    toggleDayComplete,
+    replan,
+    backToHome
+  } = usePlan();
   const showToast = useToast();
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(() => new Set());
   const [dailyDraft, setDailyDraft] = useState(String(dailyMinutes));
+  const [daysDraft, setDaysDraft] = useState(targetDays ? String(targetDays) : '');
+  const [mode, setMode] = useState<PlanInputMode>(targetDays ? 'days' : 'daily');
 
   useEffect(() => {
     setDailyDraft(String(dailyMinutes));
   }, [dailyMinutes]);
+
+  useEffect(() => {
+    setDaysDraft(targetDays ? String(targetDays) : '');
+    setMode(targetDays ? 'days' : 'daily');
+  }, [targetDays]);
 
   useEffect(() => {
     if (selectedDayIdx !== null && selectedDayIdx >= plan.length) {
@@ -72,13 +87,26 @@ export function ResultsPanel() {
   };
 
   const handleReplanDaily = () => {
-    const next = clampDaily(Number(dailyDraft));
-    setDailyDraft(String(next));
-    if (next === dailyMinutes) {
-      showToast('每日时长未变化');
+    if (mode === 'days') {
+      const days = Number(daysDraft);
+      if (!daysDraft.trim() || !Number.isFinite(days) || days <= 0) {
+        showToast('请填写想几天学完，或改选每天学习分钟');
+        return;
+      }
+      replanSchedule({
+        dailyMinutes,
+        playbackSpeed,
+        targetDays: days
+      });
       return;
     }
-    replanDailyMinutes(next);
+    const next = clampDailyMinutes(Number(dailyDraft));
+    setDailyDraft(String(next));
+    replanSchedule({
+      dailyMinutes: next,
+      playbackSpeed,
+      targetDays: null
+    });
   };
 
   return (
@@ -102,6 +130,7 @@ export function ResultsPanel() {
               <h2 className="line-clamp-2 text-sm font-bold leading-snug text-ink">{course.title}</h2>
               <p className="mt-1.5 text-xs text-text3">
                 {formatDuration(course.totalSeconds)} · {course.episodes.length}P · 每天 {dailyMinutes} 分钟
+                {playbackSpeed !== 1 ? ` · ${playbackSpeed}x` : ''}
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 <span className="rounded-md bg-accent-light px-2 py-0.5 text-[0.68rem] font-semibold text-accent-text">
@@ -120,7 +149,6 @@ export function ResultsPanel() {
               {plan.map((d, idx) => {
                 const done = progress.completedDays?.includes(d.day);
                 const isCur = idx === focusIdx;
-                const cat = getCatalogRange(d, course.episodes);
                 return (
                   <button
                     key={d.day}
@@ -138,7 +166,7 @@ export function ResultsPanel() {
                       </span>
                       {done && <span className="text-[0.65rem] text-green-600">✓</span>}
                     </div>
-                    <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-accent-text">{cat.main}</p>
+                    <p className="mt-0.5 text-[0.72rem] leading-snug text-accent-text">{d.pList.length} 个视频</p>
                   </button>
                 );
               })}
@@ -206,8 +234,7 @@ export function ResultsPanel() {
                     <p className="text-sm font-bold text-ink">
                       第 {focusDay.day} 天 · {formatDuration(focusDay.totalSec)}
                     </p>
-                    <p className="mt-2 text-sm font-medium leading-relaxed text-accent-text">{focusDay.catalogMain}</p>
-                    <p className="mt-1 text-xs text-text3">{focusDay.catalogSub}</p>
+                    <p className="mt-1 text-[0.72rem] leading-snug text-accent-text">{focusDay.pList.length} 个视频</p>
                   </div>
                 )}
                 <div className="rounded-xl border border-dashed border-accent/35 bg-surface2/60 p-4">
@@ -215,26 +242,20 @@ export function ResultsPanel() {
                     <p className="text-sm font-semibold text-ink">调整每日学习时长</p>
                     <span className="text-xs text-text3">不消耗规划次数</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5">
-                      <span className="text-sm text-text2">每天</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={dailyDraft}
-                        onChange={(e) => setDailyDraft(e.target.value.replace(/[^\d]/g, ''))}
-                        onBlur={() => setDailyDraft(String(clampDaily(Number(dailyDraft))))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleReplanDaily();
-                          }
-                        }}
-                        className="w-16 bg-transparent text-center text-lg font-bold text-ink outline-none"
-                        aria-label="每天学习分钟数"
-                      />
-                      <span className="text-sm text-text2">分钟</span>
-                    </div>
+                  <PlanSettingsRow
+                    className="items-stretch sm:items-center"
+                    mode={mode}
+                    onModeChange={setMode}
+                    dailyDraft={dailyDraft}
+                    onDailyDraftChange={setDailyDraft}
+                    onDailyCommit={() => setDailyDraft(String(clampDailyMinutes(Number(dailyDraft))))}
+                    daysDraft={daysDraft}
+                    onDaysDraftChange={setDaysDraft}
+                    playbackSpeed={playbackSpeed}
+                    onPlaybackSpeedChange={setPlaybackSpeed}
+                    radioName="results-plan-mode"
+                  />
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={handleReplanDaily}
@@ -244,7 +265,7 @@ export function ResultsPanel() {
                     </button>
                   </div>
                   <p className="mt-2.5 text-xs leading-relaxed text-text3">
-                    修改后将按新时长重新切分全部日程，已打卡进度会尽量保留。
+                    修改后将按新时长与倍速重新切分全部日程，已打卡进度会尽量保留。
                   </p>
                 </div>
               </div>
@@ -252,13 +273,36 @@ export function ResultsPanel() {
 
             {tab === 'today' && focusDay && (
               <div>
-                <div className="mb-3 text-[0.72rem] font-bold uppercase tracking-wide text-accent-text">
-                  {progress.completedDays?.includes(focusDay.day) ? '✅ 本日已完成' : `📍 第 ${focusDay.day} 天学习`}
-                </div>
-                <p className="mb-1 text-base font-bold leading-relaxed text-ink">{focusDay.catalogMain}</p>
-                <p className="mb-3 text-sm text-text2">{focusDay.catalogSub}</p>
-                <div className="mb-4 rounded-xl border-l-[3px] border-accent bg-accent-light/70 px-3 py-2.5 text-sm leading-relaxed text-text">
-                  📌 {getDayRecommend(focusDay)}
+                <div className="mb-5 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-accent-light via-white to-white p-4 shadow-sm">
+                  <div className="mb-3 text-sm font-semibold text-accent-text">
+                    {progress.completedDays?.includes(focusDay.day)
+                      ? '✅ 本日已完成'
+                      : `📍 第 ${focusDay.day} 天学习`}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-deep text-white shadow-[0_8px_20px_rgba(59,130,246,0.35)]">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-8 w-8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text3">今天任务</p>
+                      <p className="mt-0.5 text-2xl font-extrabold tracking-tight text-ink sm:text-[1.75rem]">
+                        {focusDay.pList.length} 个视频
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <ul className="space-y-2">
                   {focusDay.pList.map((p, i) => (

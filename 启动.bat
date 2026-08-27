@@ -23,6 +23,11 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000" ^| findstr "LISTENING
   taskkill /F /PID %%a >nul 2>&1
 )
 
+if exist .next (
+  echo  清理旧构建缓存...
+  rmdir /s /q .next
+)
+
 if not exist node_modules (
   echo  首次运行，正在安装依赖...
   call npm install

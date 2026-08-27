@@ -1,5 +1,5 @@
 import { fetchCourse } from '@/lib/bilibili-client';
-import { generatePlan } from '@/lib/planner';
+import { generatePlan, videoBudgetMinutes } from '@/lib/planner';
 import { findProgressEntry, openCourseFromHistory } from '@/components/plan/plan-utils';
 import { pullAndMergeCloudSync } from '@/lib/cloud-sync';
 import { normalizePlanDays } from '@/lib/plan-normalize';
@@ -40,7 +40,13 @@ export interface RestoreCourseOptions {
   token?: string | null;
   userId?: string | null;
   restoreFromCache: (cache: PlanCache, opts?: { ignoreExpiry?: boolean }) => boolean;
-  renderFromApi: (course: Course, plan: PlanDay[], dailyMin: number, completedDays?: number[]) => void;
+  renderFromApi: (
+    course: Course,
+    plan: PlanDay[],
+    dailyMin: number,
+    completedDays?: number[],
+    extras?: { playbackSpeed?: number; targetDays?: number | null }
+  ) => void;
 }
 
 /**
@@ -72,15 +78,19 @@ export async function restoreCourseForMine(opts: RestoreCourseOptions): Promise<
   const ctx = getCourseOpenContext(bvid, username);
   const completedDays = ctx.saved?.completedDays || [];
   const dailyMin = ctx.dailyMin;
+  const speed = ctx.saved?.planSnapshot?.playbackSpeed ?? 1;
 
   try {
     const url = `https://www.bilibili.com/video/${ctx.canonicalBvid}`;
     const courseData = await fetchCourse(url);
-    const planData = generatePlan(courseData.episodes, dailyMin);
+    const planData = generatePlan(courseData.episodes, videoBudgetMinutes(dailyMin, speed));
     if (!planData.length) return false;
     const validDays = new Set(planData.map((d) => d.day));
     const keptCompleted = completedDays.filter((d) => validDays.has(d));
-    renderFromApi(courseData, planData, dailyMin, keptCompleted);
+    renderFromApi(courseData, planData, dailyMin, keptCompleted, {
+      playbackSpeed: speed,
+      targetDays: ctx.saved?.planSnapshot?.targetDays ?? null
+    });
     return true;
   } catch {
     return false;

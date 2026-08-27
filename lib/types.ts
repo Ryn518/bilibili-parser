@@ -46,6 +46,10 @@ export interface PlanCache {
   pList: Episode[];
   plan: PlanDay[];
   dailyMinutes: number;
+  /** 观看倍速，缺省视为 1 */
+  playbackSpeed?: number;
+  /** 规划时填写的目标天数，仅记录不参与恢复切分 */
+  targetDays?: number | null;
   generatedAt: string;
   coverUrl: string;
 }

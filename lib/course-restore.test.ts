@@ -11,9 +11,15 @@ vi.mock('./bilibili-client', () => ({
   }))
 }));
 
-vi.mock('./planner', () => ({
-  generatePlan: vi.fn(() => [{ day: 1, pList: [{ index: 1, title: 'P1', duration: 3600, endAt: 3600 }], totalSeconds: 3600 }])
-}));
+vi.mock('./planner', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./planner')>();
+  return {
+    ...actual,
+    generatePlan: vi.fn(() => [
+      { day: 1, pList: [{ index: 1, title: 'P1', duration: 3600, endAt: 3600 }], totalSeconds: 3600 }
+    ])
+  };
+});
 
 vi.mock('./cloud-sync', () => ({
   pullAndMergeCloudSync: vi.fn(async () => {})
