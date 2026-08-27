@@ -378,7 +378,7 @@ export function ResultsPanel() {
                               第 {d.day} 天{isCur ? ' · 当前' : ''} · 约 {formatDuration(d.totalSec)}
                             </div>
                             <div className="mt-0.5 text-[0.8rem] font-medium leading-snug text-accent-text">
-                              {cat.main}
+                              {d.pList.length} 个视频
                             </div>
                             <p className="mt-0.5 text-[0.72rem] text-text3">{cat.sub}</p>
                           </div>
