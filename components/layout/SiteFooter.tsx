@@ -23,7 +23,19 @@ export function SiteFooter() {
         >
           有问题？给我留言
         </button>
-        <p className="mt-4 text-[0.68rem] text-text3">视频课表规划器 v2.2.0 · 仅供个人学习规划 · 与视频平台无官方关联</p>
+        <p className="mt-4 text-[0.68rem] text-text3">
+          视频课表规划器 v2.2.0 · 仅供个人学习规划 · 与视频平台无官方关联
+        </p>
+        <p className="mt-2 text-[0.68rem] text-text3">
+          <a
+            href="https://beian.miit.gov.cn/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-accent-text hover:underline"
+          >
+            豫ICP备2026041554号
+          </a>
+        </p>
       </div>
     </footer>
   );
