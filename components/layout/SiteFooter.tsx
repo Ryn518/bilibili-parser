@@ -33,7 +33,7 @@ export function SiteFooter() {
             rel="noreferrer"
             className="hover:text-accent-text hover:underline"
           >
-            豫ICP备2026041554号
+            豫ICP备2026041554号-1
           </a>
         </p>
       </div>
