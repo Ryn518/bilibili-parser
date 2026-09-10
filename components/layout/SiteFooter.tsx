@@ -3,7 +3,7 @@
 import { useUiStore } from '@/hooks/useUiStore';
 
 export function SiteFooter() {
-  const { openFeedback } = useUiStore();
+  const { openFeedback, openTip } = useUiStore();
 
   return (
     <footer className="mt-auto border-t border-border/60 bg-white/40 px-5 py-8 backdrop-blur-sm">
@@ -16,15 +16,24 @@ export function SiteFooter() {
           课程与打卡进度主要保存在你的浏览器中；如遇某条链接解析失败、页面异常或功能不好用，欢迎点右下角反馈，我会尽快修复。
           本项目与哔哩哔哩官方无关，视频版权归 UP 主及平台所有。
         </p>
-        <button
-          type="button"
-          onClick={openFeedback}
-          className="mt-3 text-xs font-medium text-accent-text underline-offset-2 hover:underline"
-        >
-          有问题？给我留言
-        </button>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <button
+            type="button"
+            onClick={openFeedback}
+            className="text-xs font-medium text-accent-text underline-offset-2 hover:underline"
+          >
+            有问题？给我留言
+          </button>
+          <button
+            type="button"
+            onClick={openTip}
+            className="text-xs font-medium text-amber-800/90 underline-offset-2 hover:underline"
+          >
+            觉得有用？请作者喝杯咖啡
+          </button>
+        </div>
         <p className="mt-4 text-[0.68rem] text-text3">
-          视频课表规划器 v2.2.0 · 仅供个人学习规划 · 与视频平台无官方关联
+          视频课表规划器 v2.2.1 · 仅供个人学习规划 · 与视频平台无官方关联
         </p>
         <p className="mt-2 text-[0.68rem] text-text3">
           <a

@@ -8,10 +8,13 @@ interface UiContextValue {
   authOpen: boolean;
   authMode: AuthMode;
   feedbackOpen: boolean;
+  tipOpen: boolean;
   openAuth: (mode?: AuthMode) => void;
   closeAuth: () => void;
   openFeedback: () => void;
   closeFeedback: () => void;
+  openTip: () => void;
+  closeTip: () => void;
 }
 
 const UiContext = createContext<UiContextValue | null>(null);
@@ -20,6 +23,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
 
   return (
     <UiContext.Provider
@@ -27,13 +31,16 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
         authOpen,
         authMode,
         feedbackOpen,
+        tipOpen,
         openAuth: (mode = 'login') => {
           setAuthMode(mode);
           setAuthOpen(true);
         },
         closeAuth: () => setAuthOpen(false),
         openFeedback: () => setFeedbackOpen(true),
-        closeFeedback: () => setFeedbackOpen(false)
+        closeFeedback: () => setFeedbackOpen(false),
+        openTip: () => setTipOpen(true),
+        closeTip: () => setTipOpen(false)
       }}
     >
       {children}

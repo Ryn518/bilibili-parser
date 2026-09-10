@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/useToast';
 import { useUiStore } from '@/hooks/useUiStore';
 
 export function FeedbackFab() {
-  const { feedbackOpen, openFeedback, closeFeedback } = useUiStore();
+  const { feedbackOpen, openFeedback, closeFeedback, openTip } = useUiStore();
   const auth = useAuth();
   const showToast = useToast();
   const [message, setMessage] = useState('');
@@ -45,6 +45,13 @@ export function FeedbackFab() {
   return (
     <>
       <div className="fixed bottom-5 right-5 z-[120] flex flex-col items-end gap-2.5">
+        <button
+          type="button"
+          onClick={openTip}
+          className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/95 px-4 py-2.5 text-xs font-medium text-amber-900/80 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100/95"
+        >
+          请作者喝杯咖啡
+        </button>
         <button
           type="button"
           onClick={openFeedback}
