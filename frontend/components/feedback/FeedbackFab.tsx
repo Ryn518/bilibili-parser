@@ -16,7 +16,11 @@ export function FeedbackFab() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) {
-      showToast('请填写反馈内容');
+      showToast('请填写想说的话');
+      return;
+    }
+    if (!contact.trim()) {
+      showToast('请填写联系方式，方便我回复你');
       return;
     }
     setSubmitting(true);
@@ -57,30 +61,31 @@ export function FeedbackFab() {
           onClick={openFeedback}
           className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-4 py-2.5 text-xs font-medium text-text2 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-accent hover:text-accent-text"
         >
-          <span>💬</span> 反馈
+          <span>💬</span> 悄悄话
         </button>
       </div>
       {feedbackOpen && (
         <div className="modal-overlay" onClick={closeFeedback}>
           <div className="modal max-w-[400px] text-left" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-1 text-center text-lg font-bold">反馈建议</h3>
+            <h3 className="mb-1 text-center text-lg font-bold">悄悄话</h3>
             <p className="mb-4 text-center text-xs leading-relaxed text-text2">
-              链接解析失败、页面 bug、功能建议都可以说。这是个人项目，你的反馈对我很重要。
+              感受和建议可以发到广场，说不定有同感的朋友会回复你！但是有什么想单独对我说的，也可以在这里发送给我哦。
             </p>
             <form onSubmit={submit}>
-              <label className="mb-1.5 block text-xs font-semibold text-text2">问题描述 / 建议</label>
+              <label className="mb-1.5 block text-xs font-semibold text-text2">想说的话</label>
               <textarea
                 className="mb-3 min-h-[100px] w-full resize-y rounded-[10px] border border-border bg-surface2 px-3 py-2.5 outline-none focus:border-accent"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required
               />
-              <label className="mb-1.5 block text-xs font-semibold text-text2">联系方式（选填）</label>
+              <label className="mb-1.5 block text-xs font-semibold text-text2">联系方式</label>
               <input
                 className="mb-4 w-full rounded-[10px] border border-border bg-surface2 px-3 py-2.5 outline-none focus:border-accent"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                placeholder="你的联系方式（选填）"
+                placeholder="留个邮箱，我才找得到你"
+                required
               />
               <div className="flex gap-2.5">
                 <button type="button" onClick={closeFeedback} className="flex-1 rounded-[10px] border border-border py-2.5 text-sm font-semibold text-text2">

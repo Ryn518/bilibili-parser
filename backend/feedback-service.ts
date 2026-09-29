@@ -47,16 +47,19 @@ export async function submitFeedback(body: {
   const username = String(body.username || '').trim().slice(0, 40);
 
   if (!message) {
-    return { error: '请填写反馈内容', status: 400 };
+    return { error: '请填写想说的话', status: 400 };
   }
   if (message.length > MAX_MESSAGE) {
     return { error: `反馈内容不能超过 ${MAX_MESSAGE} 字`, status: 400 };
+  }
+  if (!contact) {
+    return { error: '请填写联系方式，方便我回复你', status: 400 };
   }
 
   const entry: FeedbackEntry = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     message,
-    contact: contact || '未填写',
+    contact,
     username: username || '匿名',
     createdAt: new Date().toISOString(),
     ua: String(body.ua || '').slice(0, 200)
