@@ -7,6 +7,7 @@ import { Topbar } from '@/components/layout/Topbar';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { FeedbackFab } from '@/components/feedback/FeedbackFab';
 import { TipModal } from '@/components/feedback/TipModal';
+import { UpdateNotice } from '@/components/updates/UpdateNotice';
 import { AuthModalHost } from '@/components/auth/AuthModalHost';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SiteFooter />
             <FeedbackFab />
             <TipModal />
+            <UpdateNotice />
             <AuthModalHost />
           </div>
         </ToastProvider>

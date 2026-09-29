@@ -5,7 +5,7 @@
  * 3. 不在热路径走 allorigins 等慢代理
  * 4. 进程内短 TTL 缓存，重复规划秒回
  */
-import type { Course, Episode } from '../types';
+import type { Course, Episode } from '@/lib/types';
 
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const courseCache = new Map<string, { data: Course; ts: number }>();

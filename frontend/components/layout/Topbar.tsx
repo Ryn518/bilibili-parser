@@ -30,24 +30,36 @@ export function Topbar() {
           </span>
         </Link>
 
-        <nav className="flex gap-1 max-md:hidden">
+        <nav className="flex gap-1 max-md:gap-0.5">
           <Link
             href="/"
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${pathname === '/' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition max-md:px-2.5 max-md:text-xs ${pathname === '/' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
           >
             功能
+          </Link>
+          <Link
+            href="/plaza"
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition max-md:px-2.5 max-md:text-xs ${pathname === '/plaza' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
+          >
+            广场
+          </Link>
+          <Link
+            href="/updates"
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition max-md:px-2.5 max-md:text-xs ${pathname === '/updates' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
+          >
+            更新
           </Link>
           {auth.isAdmin && (
             <Link
               href="/admin/feedback"
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${pathname === '/admin/feedback' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition max-md:hidden ${pathname === '/admin/feedback' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
             >
               反馈
             </Link>
           )}
           <Link
             href="/mine"
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${pathname === '/mine' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition max-md:hidden ${pathname === '/mine' ? 'bg-accent-light font-semibold text-accent-text' : 'text-text2 hover:text-ink'}`}
           >
             我的
           </Link>
