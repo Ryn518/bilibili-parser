@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDraftState } from '@/hooks/useDraftState';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/hooks/useToast';
 
 interface UpdateComment {
@@ -98,6 +99,7 @@ export default function UpdatesPage() {
   const [guestName, setGuestName] = useDraftState('updates-guest', '');
   const [drafts, setDrafts] = useDraftState<Record<string, string>>('updates-comments', {});
   const [publishing, setPublishing] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ message: string; run: () => Promise<void> } | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch('/api/updates');
@@ -292,7 +294,7 @@ export default function UpdatesPage() {
         <ul className="mt-5 space-y-4">
           {items.map((item) => (
             <li key={item.id} id={`update-${item.id}`} className="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
-              <div className={`grid items-stretch gap-4 ${item.images?.length ? 'lg:grid-cols-[minmax(0,1fr)_minmax(420px,48%)]' : ''}`}>
+              <div className={`grid items-stretch gap-3 ${item.images?.length ? 'lg:grid-cols-[minmax(0,1fr)_minmax(360px,44%)]' : ''}`}>
               <div>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -300,8 +302,17 @@ export default function UpdatesPage() {
                   <h2 className="mt-1 text-lg font-bold text-ink">{item.title}</h2>
                   <p className="text-[0.7rem] text-text3">{formatTime(item.createdAt)}</p>
                 </div>
-                {auth.isAdmin && (
-                  <button type="button" onClick={() => removeUpdate(item.id)} className="text-xs text-red-500 hover:underline">
+                {auth.isAdmin && !item.images?.length && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPendingDelete({
+                        message: '确定删除这条更新吗？配图和评论会一起去掉。',
+                        run: () => removeUpdate(item.id)
+                      })
+                    }
+                    className="text-xs text-red-500 hover:underline"
+                  >
                     删除
                   </button>
                 )}
@@ -319,7 +330,16 @@ export default function UpdatesPage() {
                         <span className="ml-2 font-normal text-text3">{formatTime(row.createdAt)}</span>
                       </p>
                       {auth.isAdmin && (
-                        <button type="button" onClick={() => removeComment(item.id, row.id)} className="text-[0.7rem] text-red-500 hover:underline">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPendingDelete({
+                              message: '确定删除这条评论吗？',
+                              run: () => removeComment(item.id, row.id)
+                            })
+                          }
+                          className="text-[0.7rem] text-red-500 hover:underline"
+                        >
                           删除
                         </button>
                       )}
@@ -349,7 +369,21 @@ export default function UpdatesPage() {
               </div>
               </div>
               {!!item.images?.length && (
-                <div className="grid h-full min-h-[260px] gap-2">
+                <div className="relative grid h-full min-h-[260px] gap-2 pr-12">
+                  {auth.isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPendingDelete({
+                          message: '确定删除这条更新吗？配图和评论会一起去掉。',
+                          run: () => removeUpdate(item.id)
+                        })
+                      }
+                      className="absolute right-0 top-0 text-xs text-red-500 hover:underline"
+                    >
+                      删除
+                    </button>
+                  )}
                   {item.images.map((src) => (
                     <button
                       key={src}
@@ -357,7 +391,7 @@ export default function UpdatesPage() {
                       onClick={() => setViewing(src)}
                       className="relative h-full min-h-[260px] overflow-hidden rounded-2xl border border-border bg-[#F7F9FC] text-left transition hover:border-accent/40"
                     >
-                      <img src={src} alt="更新配图" className="absolute inset-x-0 top-0 h-[calc(100%-1.75rem)] w-full object-contain" />
+                      <img src={src} alt="更新配图" className="absolute inset-x-0 top-0 h-[calc(100%-1.75rem)] w-full object-contain object-left" />
                       <span className="absolute inset-x-0 bottom-0 py-1.5 text-center text-[0.68rem] text-text3">点击放大</span>
                     </button>
                   ))}
@@ -369,6 +403,16 @@ export default function UpdatesPage() {
         </ul>
       )}
       </div>
+      <ConfirmDialog
+        open={!!pendingDelete}
+        message={pendingDelete?.message || ''}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          const job = pendingDelete?.run;
+          setPendingDelete(null);
+          void job?.();
+        }}
+      />
       {viewing && (
         <div className="modal-overlay bg-black/70" style={{ zIndex: 160 }} onClick={() => setViewing(null)}>
           <div className="relative" onClick={(e) => e.stopPropagation()}>

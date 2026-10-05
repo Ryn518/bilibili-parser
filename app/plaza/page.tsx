@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDraftState } from '@/hooks/useDraftState';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/hooks/useToast';
 import { useUiStore } from '@/hooks/useUiStore';
 
@@ -166,6 +167,7 @@ export default function PlazaPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ message: string; run: () => Promise<void> } | null>(null);
 
   const load = useCallback(async () => {
     if (!auth.session?.token) {
@@ -409,7 +411,16 @@ export default function PlazaPage() {
                           <p className="text-xs text-text3">{formatTime(post.createdAt)}</p>
                         </div>
                         {auth.isAdmin && (
-                          <button type="button" onClick={() => removePost(post.id)} className="text-xs text-red-400 hover:text-red-500">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingDelete({
+                                message: '确定删除这条帖子吗？帖子和评论会一起去掉。',
+                                run: () => removePost(post.id)
+                              })
+                            }
+                            className="text-xs text-red-400 hover:text-red-500"
+                          >
                             删除
                           </button>
                         )}
@@ -441,7 +452,16 @@ export default function PlazaPage() {
                                   <span className="ml-2 font-normal text-text3">{formatTime(item.createdAt)}</span>
                                 </p>
                                 {auth.isAdmin && (
-                                  <button type="button" onClick={() => removeComment(post.id, item.id)} className="text-[0.7rem] text-red-400 hover:text-red-500">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPendingDelete({
+                                        message: '确定删除这条评论吗？',
+                                        run: () => removeComment(post.id, item.id)
+                                      })
+                                    }
+                                    className="text-[0.7rem] text-red-400 hover:text-red-500"
+                                  >
                                     删除
                                   </button>
                                 )}
@@ -473,6 +493,16 @@ export default function PlazaPage() {
           </ul>
         )}
       </div>
+      <ConfirmDialog
+        open={!!pendingDelete}
+        message={pendingDelete?.message || ''}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          const job = pendingDelete?.run;
+          setPendingDelete(null);
+          void job?.();
+        }}
+      />
       {viewing && (
         <div className="modal-overlay bg-black/70" style={{ zIndex: 160 }} onClick={() => setViewing(null)}>
           <div className="relative" onClick={(e) => e.stopPropagation()}>
