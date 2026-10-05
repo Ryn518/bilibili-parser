@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleBilibiliQuery } from '@/lib/server/bilibili-proxy';
+import { clientKeyFromRequest } from '@/lib/server/rate-limit';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -8,7 +9,8 @@ export async function GET(req: NextRequest) {
       bvid: searchParams.get('bvid'),
       aid: searchParams.get('aid'),
       url: searchParams.get('url'),
-      type: searchParams.get('type')
+      type: searchParams.get('type'),
+      clientKey: clientKeyFromRequest(req.headers)
     });
     return NextResponse.json(result);
   } catch (err) {

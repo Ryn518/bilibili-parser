@@ -1,5 +1,5 @@
 import { fetchCourse } from '@/lib/bilibili-client';
-import { generatePlan, videoBudgetMinutes } from '@/lib/planner';
+import { clampPlaybackSpeed, episodesForPlan, generatePlan, studySeconds, videoBudgetMinutes, wallClockMinutesFromTargetDays } from '@/lib/planner';
 import { findProgressEntry, openCourseFromHistory } from '@/components/plan/plan-utils';
 import { pullAndMergeCloudSync } from '@/lib/cloud-sync';
 import { normalizePlanDays } from '@/lib/plan-normalize';
@@ -45,7 +45,7 @@ export interface RestoreCourseOptions {
     plan: PlanDay[],
     dailyMin: number,
     completedDays?: number[],
-    extras?: { playbackSpeed?: number; targetDays?: number | null }
+    extras?: { playbackSpeed?: number; targetDays?: number | null; skippedIndexes?: number[] }
   ) => void;
 }
 
@@ -78,18 +78,25 @@ export async function restoreCourseForMine(opts: RestoreCourseOptions): Promise<
   const ctx = getCourseOpenContext(bvid, username);
   const completedDays = ctx.saved?.completedDays || [];
   const dailyMin = ctx.dailyMin;
-  const speed = ctx.saved?.planSnapshot?.playbackSpeed ?? 1;
+  const speed = clampPlaybackSpeed(ctx.saved?.planSnapshot?.playbackSpeed ?? 1);
+  const skipped = ctx.saved?.planSnapshot?.skippedIndexes ?? [];
+  const days = ctx.saved?.planSnapshot?.targetDays ?? null;
 
   try {
     const url = `https://www.bilibili.com/video/${ctx.canonicalBvid}`;
     const courseData = await fetchCourse(url);
-    const planData = generatePlan(courseData.episodes, videoBudgetMinutes(dailyMin, speed));
+    const included = episodesForPlan(courseData.episodes, skipped);
+    const planned = included.length ? included : courseData.episodes;
+    const seconds = studySeconds(courseData.episodes, included.length ? skipped : []);
+    const wall = days ? wallClockMinutesFromTargetDays(seconds, days, speed) : dailyMin;
+    const planData = generatePlan(planned, videoBudgetMinutes(wall, speed));
     if (!planData.length) return false;
     const validDays = new Set(planData.map((d) => d.day));
     const keptCompleted = completedDays.filter((d) => validDays.has(d));
-    renderFromApi(courseData, planData, dailyMin, keptCompleted, {
+    renderFromApi(courseData, planData, wall, keptCompleted, {
       playbackSpeed: speed,
-      targetDays: ctx.saved?.planSnapshot?.targetDays ?? null
+      targetDays: days,
+      skippedIndexes: included.length ? skipped : []
     });
     return true;
   } catch {

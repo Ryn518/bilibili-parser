@@ -67,6 +67,7 @@ function enrichPlanCache(
     dailyMinutes: cache.dailyMinutes ?? saved?.dailyMin ?? 45,
     playbackSpeed: cache.playbackSpeed ?? saved?.planSnapshot?.playbackSpeed,
     targetDays: cache.targetDays ?? saved?.planSnapshot?.targetDays ?? null,
+    skippedIndexes: cache.skippedIndexes ?? saved?.planSnapshot?.skippedIndexes,
     generatedAt: cache.generatedAt || new Date().toISOString().slice(0, 10),
     coverUrl: resolveCourseCover(cache, saved)
   };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generatePlan, videoBudgetMinutes, wallClockMinutesFromTargetDays } from './planner';
+import { episodesForPlan, generatePlan, studySeconds, videoBudgetMinutes, wallClockMinutesFromTargetDays } from './planner';
 import type { Episode } from './types';
 
 const sampleEpisodes: Episode[] = [
@@ -20,6 +20,15 @@ describe('generatePlan', () => {
     for (const day of plan) {
       expect(day.totalSec).toBeLessThanOrEqual(30 * 60 + Math.floor(30 * 60 * 0.15) + 60);
     }
+  });
+
+  it('keeps original episode numbers after some parts are skipped', () => {
+    const planned = episodesForPlan(sampleEpisodes, [1]);
+    expect(studySeconds(sampleEpisodes, [1])).toBe(1200 + 900);
+    const plan = generatePlan(planned, 60);
+    const covered = plan.flatMap((day) => day.pList.map((part) => part.index));
+    expect(covered).toEqual([0, 2]);
+    expect(plan.some((day) => day.catalogMain.includes('第2集'))).toBe(false);
   });
 
   it('covers all episodes across days', () => {

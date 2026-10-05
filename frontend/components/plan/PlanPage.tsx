@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Course, PlanCache, PlanDay, ProgressRecord } from '@/lib/types';
-import { generatePlan, clampDailyMinutes, clampPlaybackSpeed, clampTargetDays, videoBudgetMinutes, wallClockMinutesFromTargetDays } from '@/lib/planner';
+import { generatePlan, clampDailyMinutes, clampPlaybackSpeed, clampTargetDays, episodesForPlan, studySeconds, videoBudgetMinutes, wallClockMinutesFromTargetDays } from '@/lib/planner';
 import { fetchCourse } from '@/lib/bilibili-client';
 import { parsePasteInput } from '@/lib/bvid';
 import { normalizeCover } from '@/lib/format';
@@ -38,6 +38,9 @@ interface PlanContextValue {
   playbackSpeed: number;
   setPlaybackSpeed: (n: number) => void;
   targetDays: number | null;
+  skippedIndexes: number[];
+  toggleSkippedEpisode: (index: number) => void;
+  clearSkippedEpisodes: () => void;
   loading: boolean;
   showResults: boolean;
   startPlanning: (
@@ -87,6 +90,7 @@ export function PlanPage() {
   const [dailyMinutes, setDailyMinutes] = useState(45);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [targetDays, setTargetDays] = useState<number | null>(null);
+  const [skippedIndexes, setSkippedIndexes] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [continueCache, setContinueCache] = useState<PlanCache | null>(null);
@@ -112,7 +116,7 @@ export function PlanPage() {
       planData: PlanDay[],
       dailyMin: number,
       completedOverride?: number[],
-      extras?: { playbackSpeed?: number; targetDays?: number | null }
+      extras?: { playbackSpeed?: number; targetDays?: number | null; skippedIndexes?: number[] }
     ) => {
       const normalized: Course = {
         ...courseData,
@@ -133,6 +137,8 @@ export function PlanPage() {
       const days = extras?.targetDays !== undefined ? extras.targetDays : targetDays;
       if (extras?.playbackSpeed != null) setPlaybackSpeed(clampPlaybackSpeed(extras.playbackSpeed));
       if (extras?.targetDays !== undefined) setTargetDays(extras.targetDays);
+      const skipped = extras?.skippedIndexes ?? skippedIndexes;
+      if (extras?.skippedIndexes !== undefined) setSkippedIndexes(extras.skippedIndexes);
 
       const cache: PlanCache = {
         bvid: normalized.bvid,
@@ -143,6 +149,7 @@ export function PlanPage() {
         dailyMinutes: dailyMin,
         playbackSpeed: speed,
         targetDays: days,
+        skippedIndexes: skipped,
         generatedAt: new Date().toISOString().slice(0, 10),
         coverUrl: normalized.cover
       };
@@ -158,7 +165,7 @@ export function PlanPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     },
-    [persistProgress, playbackSpeed, targetDays]
+    [persistProgress, playbackSpeed, targetDays, skippedIndexes]
   );
 
   const restoreFromCache = useCallback(
@@ -174,7 +181,8 @@ export function PlanPage() {
       setTargetDays(enriched.targetDays ?? null);
       renderPlan(cacheToCourse(enriched, saved), enriched.plan, enriched.dailyMinutes, undefined, {
         playbackSpeed: enriched.playbackSpeed ?? 1,
-        targetDays: enriched.targetDays ?? null
+        targetDays: enriched.targetDays ?? null,
+        skippedIndexes: enriched.skippedIndexes ?? []
       });
       return true;
     },
@@ -330,7 +338,12 @@ export function PlanPage() {
         setDailyMinutes(wall);
         setPlaybackSpeed(speed);
         setTargetDays(days);
-        renderPlan(courseData, planData, wall, undefined, { playbackSpeed: speed, targetDays: days });
+        setSkippedIndexes([]);
+        renderPlan(courseData, planData, wall, undefined, {
+          playbackSpeed: speed,
+          targetDays: days,
+          skippedIndexes: []
+        });
         if (!authRef.current.session) {
           showToast('课表已生成 · 登录后可保存到「我的课程」');
         } else if (days) {
@@ -365,11 +378,17 @@ export function PlanPage() {
   );
 
   const applyReplan = useCallback(
-    (wall: number, speed: number, days: number | null) => {
+    (wall: number, speed: number, days: number | null, skipped: number[] = skippedIndexes, notice?: string) => {
       if (!course) return;
-      const m = clampDailyMinutes(wall);
+      const included = episodesForPlan(course.episodes, skipped);
+      if (!included.length) {
+        showToast('至少留一个要学的视频');
+        return;
+      }
       const s = clampPlaybackSpeed(speed);
-      const planData = generatePlan(course.episodes, videoBudgetMinutes(m, s));
+      const seconds = studySeconds(course.episodes, skipped);
+      const m = days ? wallClockMinutesFromTargetDays(seconds, days, s) : clampDailyMinutes(wall);
+      const planData = generatePlan(included, videoBudgetMinutes(m, s));
       if (!planData.length) {
         showToast('未能生成课表，请检查课程分P数据');
         return;
@@ -381,6 +400,7 @@ export function PlanPage() {
       setDailyMinutes(m);
       setPlaybackSpeed(s);
       setTargetDays(days);
+      setSkippedIndexes(skipped);
       setPlan(planData);
       setProgress((prev) => ({ ...prev, completedDays }));
 
@@ -393,12 +413,15 @@ export function PlanPage() {
         dailyMinutes: m,
         playbackSpeed: s,
         targetDays: days,
+        skippedIndexes: skipped,
         generatedAt: new Date().toISOString().slice(0, 10),
         coverUrl: course.cover
       };
       savePlanCache(cache);
       persistProgress(course.bvid, { dailyMin: m, completedDays }, cache);
-      if (days) {
+      if (notice) {
+        showToast(`${notice}，共 ${planData.length} 天`);
+      } else if (days) {
         showToast(`已按 ${days} 天倒推：每天约 ${m} 分钟 · ${s}x，共 ${planData.length} 天`);
       } else if (s !== 1) {
         showToast(`已按每天 ${m} 分钟 · ${s}x 重新规划，共 ${planData.length} 天`);
@@ -406,14 +429,14 @@ export function PlanPage() {
         showToast(`已按每天 ${m} 分钟重新规划，共 ${planData.length} 天`);
       }
     },
-    [course, progress.completedDays, showToast, persistProgress]
+    [course, progress.completedDays, showToast, persistProgress, skippedIndexes]
   );
 
   const replanDailyMinutes = useCallback(
     (minutes: number) => {
-      applyReplan(minutes, playbackSpeed, null);
+      applyReplan(minutes, playbackSpeed, null, skippedIndexes);
     },
-    [applyReplan, playbackSpeed]
+    [applyReplan, playbackSpeed, skippedIndexes]
   );
 
   const replanSchedule = useCallback(
@@ -421,18 +444,47 @@ export function PlanPage() {
       if (!course) return;
       const s = clampPlaybackSpeed(opts.playbackSpeed);
       const days = opts.targetDays != null && opts.targetDays > 0 ? clampTargetDays(opts.targetDays) : null;
+      const seconds = studySeconds(course.episodes, skippedIndexes);
       const wall = days
-        ? wallClockMinutesFromTargetDays(course.totalSeconds, days, s)
+        ? wallClockMinutesFromTargetDays(seconds, days, s)
         : clampDailyMinutes(opts.dailyMinutes);
-      applyReplan(wall, s, days);
+      applyReplan(wall, s, days, skippedIndexes);
     },
-    [course, applyReplan]
+    [course, applyReplan, skippedIndexes]
   );
+
+  const toggleSkippedEpisode = useCallback(
+    (index: number) => {
+      if (!course) return;
+      const next = skippedIndexes.includes(index)
+        ? skippedIndexes.filter((n) => n !== index)
+        : [...skippedIndexes, index];
+      if (!episodesForPlan(course.episodes, next).length) {
+        showToast('至少留一个要学的视频');
+        return;
+      }
+      const removed = next.length > skippedIndexes.length;
+      applyReplan(
+        dailyMinutes,
+        playbackSpeed,
+        targetDays,
+        next,
+        removed ? `已排除 ${next.length} 个视频，按剩下的内容重排` : '已加回这个视频，课表已重排'
+      );
+    },
+    [course, skippedIndexes, showToast, applyReplan, dailyMinutes, playbackSpeed, targetDays]
+  );
+
+  const clearSkippedEpisodes = useCallback(() => {
+    if (!skippedIndexes.length) return;
+    applyReplan(dailyMinutes, playbackSpeed, targetDays, [], '已加回全部视频，课表已重排');
+  }, [skippedIndexes.length, applyReplan, dailyMinutes, playbackSpeed, targetDays]);
 
   const replan = useCallback(() => {
     setCourse(null);
     setPlan([]);
     setProgress({ completedDays: [] });
+    setSkippedIndexes([]);
     setShowResults(false);
     setContinueCache(null);
     clearPlanCache();
@@ -455,6 +507,9 @@ export function PlanPage() {
       playbackSpeed,
       setPlaybackSpeed,
       targetDays,
+      skippedIndexes,
+      toggleSkippedEpisode,
+      clearSkippedEpisodes,
       loading,
       showResults,
       startPlanning,
@@ -465,7 +520,7 @@ export function PlanPage() {
       replan,
       backToHome
     }),
-    [course, plan, progress, dailyMinutes, playbackSpeed, targetDays, loading, showResults, startPlanning, restoreFromCache, toggleDayComplete, replanDailyMinutes, replanSchedule, replan, backToHome]
+    [course, plan, progress, dailyMinutes, playbackSpeed, targetDays, skippedIndexes, loading, showResults, startPlanning, restoreFromCache, toggleDayComplete, toggleSkippedEpisode, clearSkippedEpisodes, replanDailyMinutes, replanSchedule, replan, backToHome]
   );
 
   return (

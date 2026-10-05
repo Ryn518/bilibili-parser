@@ -1,11 +1,13 @@
 /**
  * B 站课程数据代理 — 借鉴 yt-dlp 的多端点策略，针对「规划器」场景做速度优化：
  * 1. 快路径：只打一次 view（自带 title / pic / pages）
- * 2. 缺分P 时再竞速 pagelist 端点（Promise.any，谁先成功用谁）
+ * 2. 缺分P 时再顺序尝试 pagelist（避免并行打接口）
  * 3. 不在热路径走 allorigins 等慢代理
  * 4. 进程内短 TTL 缓存，重复规划秒回
+ * 5. 缓存未命中才限流：按访问者 + 全站间隔打 B 站
  */
 import type { Course, Episode } from '@/lib/types';
+import { assertClientLimit, noteBiliBusy, withBiliSlot } from './rate-limit';
 
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const courseCache = new Map<string, { data: Course; ts: number }>();
@@ -34,47 +36,42 @@ function friendlyBiliError(code: number, message?: string): string {
   return message || `B站返回错误 code=${code}`;
 }
 
-/** 直连 B 站（热路径）；超时压到 8s，失败即抛，不拖慢 */
-async function fetchBiliJson(url: string, bvid?: string | null, timeoutMs = 8000) {
-  const response = await fetch(url, {
-    headers: buildHeaders(bvid),
-    signal: AbortSignal.timeout(timeoutMs),
-    cache: 'no-store'
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  if (data.code !== 0) {
-    throw new Error(friendlyBiliError(Number(data.code), data.message));
-  }
-  return data as { code: number; message?: string; data: unknown };
+function isBusyStatus(status: number) {
+  return status === 412 || status === 429 || status === 503;
 }
 
-/** yt-dlp 同款：多个端点竞速，谁先成功用谁 */
-async function raceJson(
-  urls: string[],
-  bvid: string,
-  timeoutMs = 8000
-): Promise<{ code: number; data: unknown }> {
-  const errors: string[] = [];
-  return await new Promise((resolve, reject) => {
-    let pending = urls.length;
-    let settled = false;
-    for (const url of urls) {
-      fetchBiliJson(url, bvid, timeoutMs)
-        .then((data) => {
-          if (settled) return;
-          settled = true;
-          resolve(data);
-        })
-        .catch((e: Error) => {
-          errors.push(e.message);
-          pending -= 1;
-          if (!settled && pending <= 0) {
-            reject(new Error(errors[0] || '全部端点失败'));
-          }
-        });
+/** 直连 B 站（热路径）；超时压到 8s，失败即抛，不拖慢 */
+async function fetchBiliJson(url: string, bvid?: string | null, timeoutMs = 8000) {
+  return withBiliSlot(async () => {
+    const response = await fetch(url, {
+      headers: buildHeaders(bvid),
+      signal: AbortSignal.timeout(timeoutMs),
+      cache: 'no-store'
+    });
+    if (isBusyStatus(response.status)) {
+      noteBiliBusy();
+      throw Object.assign(new Error('B站接口繁忙，请稍后再试'), { status: 429 });
     }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (data.code !== 0) {
+      throw new Error(friendlyBiliError(Number(data.code), data.message));
+    }
+    return data as { code: number; message?: string; data: unknown };
   });
+}
+
+/** 缺分P 时按顺序试备选端点，成功一个就停 */
+async function firstJson(urls: string[], bvid: string, timeoutMs = 8000) {
+  const errors: string[] = [];
+  for (const url of urls) {
+    try {
+      return await fetchBiliJson(url, bvid, timeoutMs);
+    } catch (e) {
+      errors.push((e as Error).message);
+    }
+  }
+  throw new Error(errors[0] || '全部端点失败');
 }
 
 function normalizeCover(url: string) {
@@ -123,9 +120,10 @@ function setCached(bvid: string, data: Course) {
  * 快路径（yt-dlp / 旧版最优路径）：
  * view 一次拿齐元数据 + 分P；只有 pages 缺失才竞速 pagelist。
  */
-export async function handleCourse(bvid: string): Promise<Course> {
+export async function handleCourse(bvid: string, clientKey?: string): Promise<Course> {
   const cached = getCached(bvid);
   if (cached) return cached;
+  if (clientKey) assertClientLimit(clientKey);
 
   const viewUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${encodeURIComponent(bvid)}`;
 
@@ -155,8 +153,8 @@ export async function handleCourse(bvid: string): Promise<Course> {
   ];
 
   try {
-    const raced = await raceJson(pageUrls, bvid, 8000);
-    pages = asPages(raced.data);
+    const paged = await firstJson(pageUrls, bvid, 8000);
+    pages = asPages(paged.data);
   } catch (e) {
     if (!pages.length) {
       throw new Error(viewErr?.message || (e as Error).message || '未找到分P信息');
@@ -177,15 +175,18 @@ export async function handleCourse(bvid: string): Promise<Course> {
   return course;
 }
 
-export async function resolveShortUrl(rawUrl: string): Promise<string> {
+export async function resolveShortUrl(rawUrl: string, clientKey?: string): Promise<string> {
   const url = rawUrl.trim();
   if (!url) throw new Error('缺少 url 参数');
+  if (clientKey) assertClientLimit(clientKey);
 
-  const response = await fetch(url, {
-    headers: buildHeaders(null),
-    redirect: 'follow',
-    signal: AbortSignal.timeout(10000)
-  });
+  const response = await withBiliSlot(() =>
+    fetch(url, {
+      headers: buildHeaders(null),
+      redirect: 'follow',
+      signal: AbortSignal.timeout(10000)
+    })
+  );
 
   // BV 大小写敏感，禁止 toUpperCase 整串
   const fromFinal = response.url.match(/BV1[a-zA-Z0-9]{9}/i);
@@ -209,18 +210,20 @@ export async function handleBilibiliQuery(query: {
   aid?: string | null;
   url?: string | null;
   type?: string | null;
+  clientKey?: string | null;
 }) {
-  const { bvid, aid, url, type = 'view' } = query;
+  const { bvid, aid, url, type = 'view', clientKey } = query;
+  const key = clientKey || undefined;
 
   if (type === 'resolve') {
     if (!url) throw Object.assign(new Error('resolve 需要 url 参数'), { status: 400 });
-    const resolved = await resolveShortUrl(url);
+    const resolved = await resolveShortUrl(url, key);
     return { code: 0, data: { bvid: resolved } };
   }
 
   if (type === 'course') {
     if (bvid) {
-      const data = await handleCourse(bvid);
+      const data = await handleCourse(bvid, key);
       return { code: 0, data };
     }
     if (aid) {
@@ -231,7 +234,7 @@ export async function handleBilibiliQuery(query: {
       );
       const resolvedBvid = String((view.data as Record<string, unknown>)?.bvid || '');
       if (!resolvedBvid) throw new Error('av 号无效');
-      const data = await handleCourse(resolvedBvid);
+      const data = await handleCourse(resolvedBvid, key);
       return { code: 0, data };
     }
     throw Object.assign(new Error('course 需要 bvid 或 aid 参数'), { status: 400 });
@@ -252,6 +255,7 @@ export async function handleBilibiliQuery(query: {
     throw Object.assign(new Error('缺少 bvid 或 aid 参数'), { status: 400 });
   }
 
+  if (key) assertClientLimit(key);
   const data = await fetchBiliJson(apiUrl, bvid || null, 8000);
   return data;
 }

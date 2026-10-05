@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePlan } from '@/components/plan/PlanPage';
 import { formatDuration } from '@/lib/format';
-import { describePartDetail, getCatalogRange, clampDailyMinutes } from '@/lib/planner';
+import { describePartDetail, getCatalogRange, clampDailyMinutes, studySeconds } from '@/lib/planner';
+import { EpisodePicker } from '@/components/plan/EpisodePicker';
 import { CardDownload } from '@/components/plan/CardDownload';
 import { CoverImage } from '@/components/ui/CoverImage';
 import { PlanSettingsRow, type PlanInputMode } from '@/components/plan/PlanSettingsRow';
@@ -27,6 +28,9 @@ export function ResultsPanel() {
     playbackSpeed,
     setPlaybackSpeed,
     targetDays,
+    skippedIndexes,
+    toggleSkippedEpisode,
+    clearSkippedEpisodes,
     replanSchedule,
     toggleDayComplete,
     replan,
@@ -71,6 +75,10 @@ export function ResultsPanel() {
   const focusDay = plan[focusIdx];
 
   if (!course) return null;
+
+  const skippedCount = skippedIndexes.length;
+  const studyCount = Math.max(0, course.episodes.length - skippedCount);
+  const shownSeconds = skippedCount ? studySeconds(course.episodes, skippedIndexes) : course.totalSeconds;
 
   const toggleExpand = (dayNum: number) => {
     setExpandedDays((prev) => {
@@ -129,7 +137,7 @@ export function ResultsPanel() {
             <div className="p-4">
               <h2 className="line-clamp-2 text-sm font-bold leading-snug text-ink">{course.title}</h2>
               <p className="mt-1.5 text-xs text-text3">
-                {formatDuration(course.totalSeconds)} · {course.episodes.length}P · 每天 {dailyMinutes} 分钟
+                {formatDuration(shownSeconds)} · {skippedCount ? `学 ${studyCount}/${course.episodes.length}P` : `${course.episodes.length}P`} · 每天 {dailyMinutes} 分钟
                 {playbackSpeed !== 1 ? ` · ${playbackSpeed}x` : ''}
               </p>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -237,6 +245,12 @@ export function ResultsPanel() {
                     <p className="mt-1 text-[0.72rem] leading-snug text-accent-text">{focusDay.pList.length} 个视频</p>
                   </div>
                 )}
+                <EpisodePicker
+                  episodes={course.episodes}
+                  skippedIndexes={skippedIndexes}
+                  onToggle={toggleSkippedEpisode}
+                  onClear={clearSkippedEpisodes}
+                />
                 <div className="rounded-xl border border-dashed border-accent/35 bg-surface2/60 p-4">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-ink">调整每日学习时长</p>
@@ -265,7 +279,7 @@ export function ResultsPanel() {
                     </button>
                   </div>
                   <p className="mt-2.5 text-xs leading-relaxed text-text3">
-                    修改后将按新时长与倍速重新切分全部日程，已打卡进度会尽量保留。
+                    修改后会按新时长、倍速，以及还要学的视频重新切分日程，已打卡进度会尽量保留。
                   </p>
                 </div>
               </div>

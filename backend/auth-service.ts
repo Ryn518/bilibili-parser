@@ -119,14 +119,15 @@ export async function handleLogin(
     return { error: '请输入用户名和密码', status: 400 as const };
   }
 
-  const adminUser = normalizeUsername(process.env.ADMIN_USER || '');
+  const adminDisplay = String(process.env.ADMIN_USER || '').trim();
+  const adminUser = normalizeUsername(adminDisplay);
   const adminPass = process.env.ADMIN_PASS || '';
 
   if (adminUser && adminPass && username === adminUser) {
     if (password !== adminPass) {
       return { error: '用户名或密码错误', status: 401 as const };
     }
-    return { data: issueSession(username, 'admin') };
+    return { data: issueSession(adminDisplay, 'admin') };
   }
 
   if (isDatabaseConfigured()) {

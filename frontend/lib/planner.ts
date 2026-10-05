@@ -10,10 +10,10 @@ export function getCatalogRange(
   const last = parts[parts.length - 1];
   const studyLabel = formatDuration(parts.reduce((s, p) => s + p.duration, 0));
   const continues = first.partial && first.startAt > 0;
+  const fullDur = episodeFullDuration(episodes, first.index, last.endAt);
 
   if (parts.length === 1) {
     if (continues) {
-      const fullDur = episodes?.[first.index]?.duration || last.endAt;
       return {
         main: `继续「${first.title}」从 ${formatShort(first.startAt)} 看到 ${formatShort(first.endAt)}`,
         sub: `本日学习约 ${studyLabel}${last.endAt < fullDur ? ' · 本集仍未看完' : ''}`
@@ -107,6 +107,25 @@ export function clampPlaybackSpeed(n: number): number {
   return best;
 }
 
+function episodeFullDuration(episodes: Episode[] | undefined, index: number, fallback: number) {
+  if (!episodes?.length) return fallback;
+  const at = episodes[index];
+  if (at && at.index === index && at.duration > 0) return at.duration;
+  const found = episodes.find((ep) => ep.index === index);
+  return found && found.duration > 0 ? found.duration : fallback;
+}
+
+/** 去掉不想学的分 P，保留原来的目录序号 */
+export function episodesForPlan(episodes: Episode[], skippedIndexes: number[] = []): Episode[] {
+  if (!skippedIndexes.length) return episodes;
+  const skip = new Set(skippedIndexes);
+  return episodes.filter((ep) => !skip.has(ep.index));
+}
+
+export function studySeconds(episodes: Episode[], skippedIndexes: number[] = []): number {
+  return episodesForPlan(episodes, skippedIndexes).reduce((sum, ep) => sum + ep.duration, 0);
+}
+
 /** 每天实际可消化的视频分钟数 = 投入时长 × 倍速 */
 export function videoBudgetMinutes(wallClockMin: number, speed: number): number {
   const wall = clampDailyMinutes(wallClockMin);
@@ -146,7 +165,7 @@ export function generatePlan(episodes: Episode[], dailyMin: number): PlanDay[] {
 
       if (remain <= left) {
         parts.push({
-          index: i,
+          index: ep.index,
           title: ep.title,
           duration: remain,
           partial: offset > 0,
@@ -162,7 +181,7 @@ export function generatePlan(episodes: Episode[], dailyMin: number): PlanDay[] {
 
       if (offset === 0 && remain <= left + flexSec) {
         parts.push({
-          index: i,
+          index: ep.index,
           title: ep.title,
           duration: remain,
           partial: false,
@@ -179,7 +198,7 @@ export function generatePlan(episodes: Episode[], dailyMin: number): PlanDay[] {
       if (left <= 0) break;
 
       parts.push({
-        index: i,
+        index: ep.index,
         title: ep.title,
         duration: left,
         partial: true,

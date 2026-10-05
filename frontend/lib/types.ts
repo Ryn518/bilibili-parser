@@ -50,6 +50,8 @@ export interface PlanCache {
   playbackSpeed?: number;
   /** 规划时填写的目标天数，仅记录不参与恢复切分 */
   targetDays?: number | null;
+  /** 排除、不参与规划的分 P（Episode.index） */
+  skippedIndexes?: number[];
   generatedAt: string;
   coverUrl: string;
 }
