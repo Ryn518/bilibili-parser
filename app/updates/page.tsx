@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useDraftState } from '@/hooks/useDraftState';
 import { useToast } from '@/hooks/useToast';
 
 interface UpdateComment {
@@ -18,6 +19,64 @@ interface SiteUpdate {
   content: string;
   createdAt: string;
   comments: UpdateComment[];
+  images?: string[];
+}
+
+const MAX_IMAGES = 4;
+
+function filesFromClipboard(data: DataTransfer) {
+  const fromFiles = Array.from(data.files).filter((file) => file.type.startsWith('image/'));
+  if (fromFiles.length) return fromFiles;
+  const picked: File[] = [];
+  for (const item of Array.from(data.items)) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) picked.push(file);
+    }
+  }
+  return picked;
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('这张图片读不了'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImage(file: File) {
+  const keepOriginal = file.size <= 2_400_000 && (file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/jpeg');
+  if (keepOriginal) return fileToDataUrl(file);
+
+  return new Promise<string>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 1920;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error('图片处理失败'));
+        return;
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.92));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('这张图片读不了'));
+    };
+    img.src = url;
+  });
 }
 
 function formatTime(iso: string) {
@@ -31,11 +90,13 @@ export default function UpdatesPage() {
   const showToast = useToast();
   const [items, setItems] = useState<SiteUpdate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [version, setVersion] = useState('');
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [guestName, setGuestName] = useState('');
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [version, setVersion] = useDraftState('updates-version', '');
+  const [title, setTitle] = useDraftState('updates-title', '');
+  const [body, setBody] = useDraftState('updates-body', '');
+  const [images, setImages] = useDraftState<string[]>('updates-images', [], false);
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [guestName, setGuestName] = useDraftState('updates-guest', '');
+  const [drafts, setDrafts] = useDraftState<Record<string, string>>('updates-comments', {});
   const [publishing, setPublishing] = useState(false);
 
   const load = useCallback(async () => {
@@ -48,6 +109,30 @@ export default function UpdatesPage() {
     load().finally(() => setLoading(false));
   }, [load]);
 
+  const addImages = async (files: File[]) => {
+    if (!files.length) return;
+    const room = MAX_IMAGES - images.length;
+    if (room <= 0) {
+      showToast(`最多粘贴 ${MAX_IMAGES} 张图片`);
+      return;
+    }
+    const next = files.slice(0, room);
+    if (files.length > room) showToast(`最多粘贴 ${MAX_IMAGES} 张图片`);
+    try {
+      const urls = await Promise.all(next.map(compressImage));
+      setImages((prev) => [...prev, ...urls].slice(0, MAX_IMAGES));
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '图片处理失败');
+    }
+  };
+
+  const onPasteImages = (event: React.ClipboardEvent) => {
+    const files = filesFromClipboard(event.clipboardData);
+    if (!files.length) return;
+    event.preventDefault();
+    void addImages(files);
+  };
+
   const publish = async () => {
     if (!auth.session?.token) return;
     setPublishing(true);
@@ -58,7 +143,7 @@ export default function UpdatesPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.session.token}`
         },
-        body: JSON.stringify({ version, title, content: body })
+        body: JSON.stringify({ version, title, content: body, images })
       });
       const json = await res.json();
       if (!res.ok || json.code !== 0) throw new Error(json.message || '发布失败');
@@ -66,6 +151,7 @@ export default function UpdatesPage() {
       setVersion('');
       setTitle('');
       setBody('');
+      setImages([]);
       showToast('更新已发布，下次打开网站的人会看到弹窗');
       await load();
     } catch (err) {
@@ -153,9 +239,43 @@ export default function UpdatesPage() {
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="这次做了哪些改动"
+            onPaste={onPasteImages}
+            placeholder="这次做了哪些改动。也可以在这里直接粘贴截图"
             className="mt-2 min-h-[120px] w-full resize-y rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-accent"
           />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <label className="cursor-pointer rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-text2 hover:border-accent hover:text-accent-text">
+              添加图片
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  e.target.value = '';
+                  void addImages(files);
+                }}
+              />
+            </label>
+            <span className="text-xs text-text3">在输入框里 Ctrl+V 粘贴截图，最多 {MAX_IMAGES} 张</span>
+          </div>
+          {images.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {images.map((src, index) => (
+                <div key={src.slice(0, 48) + index} className="relative overflow-hidden rounded-xl border border-border bg-white">
+                  <img src={src} alt="" className="aspect-[4/3] w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+                    className="absolute right-1.5 top-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[0.68rem] font-semibold text-red-500 shadow"
+                  >
+                    移除
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="mt-3 flex justify-end">
             <button type="button" onClick={publish} disabled={publishing} className="btn-accent">
               {publishing ? '发布中…' : '发布更新'}
@@ -172,6 +292,8 @@ export default function UpdatesPage() {
         <ul className="mt-5 space-y-4">
           {items.map((item) => (
             <li key={item.id} id={`update-${item.id}`} className="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
+              <div className={`grid items-stretch gap-4 ${item.images?.length ? 'lg:grid-cols-[minmax(0,1fr)_minmax(420px,48%)]' : ''}`}>
+              <div>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold text-accent-text">{item.version}</p>
@@ -184,9 +306,11 @@ export default function UpdatesPage() {
                   </button>
                 )}
               </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-text2">{item.content}</p>
+              {item.content ? (
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-text2">{item.content}</p>
+              ) : null}
 
-              <div className="mt-4 max-w-[420px] space-y-2 border-t border-border/70 pt-3">
+              <div className={`${item.content ? 'mt-4' : ''} max-w-[420px] space-y-2 border-t border-border/70 pt-3`}>
                 {item.comments.map((row) => (
                   <div key={row.id} className="rounded-xl bg-surface2 px-3 py-2">
                     <div className="flex items-center justify-between gap-2">
@@ -223,11 +347,42 @@ export default function UpdatesPage() {
                   </button>
                 </div>
               </div>
+              </div>
+              {!!item.images?.length && (
+                <div className="grid h-full min-h-[260px] gap-2">
+                  {item.images.map((src) => (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => setViewing(src)}
+                      className="relative h-full min-h-[260px] overflow-hidden rounded-2xl border border-border bg-[#F7F9FC] text-left transition hover:border-accent/40"
+                    >
+                      <img src={src} alt="更新配图" className="absolute inset-x-0 top-0 h-[calc(100%-1.75rem)] w-full object-contain" />
+                      <span className="absolute inset-x-0 bottom-0 py-1.5 text-center text-[0.68rem] text-text3">点击放大</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              </div>
             </li>
           ))}
         </ul>
       )}
       </div>
+      {viewing && (
+        <div className="modal-overlay bg-black/70" style={{ zIndex: 160 }} onClick={() => setViewing(null)}>
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img src={viewing} alt="更新配图" className="max-h-[88vh] max-w-[min(1100px,94vw)] rounded-2xl bg-white object-contain shadow-2xl" />
+            <button
+              type="button"
+              onClick={() => setViewing(null)}
+              className="absolute -top-3 right-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink shadow sm:-right-3"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useDraftState } from '@/hooks/useDraftState';
 import { useToast } from '@/hooks/useToast';
 import { useUiStore } from '@/hooks/useUiStore';
 
@@ -22,6 +23,100 @@ interface PlazaPost {
   likeCount: number;
   liked: boolean;
   comments: PlazaComment[];
+  images?: string[];
+}
+
+const MAX_IMAGES = 4;
+
+function filesFromClipboard(data: DataTransfer) {
+  const fromFiles = Array.from(data.files).filter((file) => file.type.startsWith('image/'));
+  if (fromFiles.length) return fromFiles;
+  const picked: File[] = [];
+  for (const item of Array.from(data.items)) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) picked.push(file);
+    }
+  }
+  return picked;
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('这张图片读不了'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function prepareImage(file: File) {
+  const keepOriginal = file.size <= 2_400_000 && (file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/jpeg');
+  if (keepOriginal) return fileToDataUrl(file);
+  return new Promise<string>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1920 / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error('图片处理失败'));
+        return;
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.92));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('这张图片读不了'));
+    };
+    img.src = url;
+  });
+}
+
+function ImagePager({ images, onOpen }: { images: string[]; onOpen: (src: string) => void }) {
+  const [index, setIndex] = useState(0);
+  const current = images[Math.min(index, images.length - 1)];
+  const multiple = images.length > 1;
+  const turn = (step: number) => setIndex((value) => (value + step + images.length) % images.length);
+
+  return (
+    <div className="relative mt-3 max-w-[560px] overflow-hidden rounded-2xl border border-border bg-[#F7F9FC]">
+      <button type="button" onClick={() => onOpen(current)} className="block w-full">
+        <img src={current} alt="帖子配图" className="h-72 w-full object-contain" />
+      </button>
+      {multiple && (
+        <>
+          <button
+            type="button"
+            aria-label="上一张"
+            onClick={() => turn(-1)}
+            className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-lg text-ink shadow-sm hover:bg-white"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            aria-label="下一张"
+            onClick={() => turn(1)}
+            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-lg text-ink shadow-sm hover:bg-white"
+          >
+            ›
+          </button>
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-2.5 py-0.5 text-[0.68rem] font-medium text-text2 shadow-sm">
+            {Math.min(index, images.length - 1) + 1} / {images.length}
+          </span>
+        </>
+      )}
+    </div>
+  );
 }
 
 function formatTime(iso: string) {
@@ -64,8 +159,10 @@ export default function PlazaPage() {
   const showToast = useToast();
   const { openAuth } = useUiStore();
   const [posts, setPosts] = useState<PlazaPost[]>([]);
-  const [content, setContent] = useState('');
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [content, setContent] = useDraftState('plaza-content', '');
+  const [images, setImages] = useDraftState<string[]>('plaza-images', [], false);
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [drafts, setDrafts] = useDraftState<Record<string, string>>('plaza-comments', {});
   const [openId, setOpenId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -87,13 +184,30 @@ export default function PlazaPage() {
     load().finally(() => setLoading(false));
   }, [auth.loading, load]);
 
+  const addImages = async (files: File[]) => {
+    if (!files.length) return;
+    const room = MAX_IMAGES - images.length;
+    if (room <= 0) {
+      showToast(`最多粘贴 ${MAX_IMAGES} 张图片`);
+      return;
+    }
+    const next = files.slice(0, room);
+    if (files.length > room) showToast(`最多粘贴 ${MAX_IMAGES} 张图片`);
+    try {
+      const urls = await Promise.all(next.map(prepareImage));
+      setImages((prev) => [...prev, ...urls].slice(0, MAX_IMAGES));
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '图片处理失败');
+    }
+  };
+
   const publish = async () => {
     if (!auth.session?.token) {
       openAuth('login');
       return;
     }
-    if (!content.trim()) {
-      showToast('请先写点内容');
+    if (!content.trim() && images.length === 0) {
+      showToast('请先写点内容，或粘贴一张图片');
       return;
     }
     setSubmitting(true);
@@ -104,11 +218,12 @@ export default function PlazaPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.session.token}`
         },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content, images })
       });
       const json = await res.json();
       if (!res.ok || json.code !== 0) throw new Error(json.message || '发布失败');
       setContent('');
+      setImages([]);
       showToast('已发布');
       await load();
     } catch (err) {
@@ -240,11 +355,34 @@ export default function PlazaPage() {
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="写一条建议或想法…"
+                onPaste={(event) => {
+                  const files = filesFromClipboard(event.clipboardData);
+                  if (!files.length) return;
+                  event.preventDefault();
+                  void addImages(files);
+                }}
+                placeholder="写一条建议或想法，也可以直接粘贴图片…"
                 className="min-h-[72px] flex-1 resize-y bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-text3"
               />
             </div>
-            <div className="mt-2 flex justify-end">
+            {images.length > 0 && (
+              <div className="mt-2 flex gap-2 overflow-x-auto pl-[52px]">
+                {images.map((src, index) => (
+                  <div key={src.slice(0, 32) + index} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white bg-white">
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+                      className="absolute right-0.5 top-0.5 rounded-full bg-white/90 px-1.5 text-[0.65rem] font-semibold text-red-500"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-2 flex items-center justify-between gap-3 pl-[52px]">
+              <span className="text-xs text-text3">Ctrl+V 粘贴图片，多张可以翻页看，最多 {MAX_IMAGES} 张</span>
               <button type="button" onClick={publish} disabled={submitting} className="btn-accent min-w-[84px]">
                 {submitting ? '发布中…' : '发布'}
               </button>
@@ -276,7 +414,10 @@ export default function PlazaPage() {
                           </button>
                         )}
                       </div>
-                      <p className="mt-2.5 whitespace-pre-wrap text-[15px] leading-7 text-ink">{post.content}</p>
+                      {post.content ? (
+                        <p className="mt-2.5 whitespace-pre-wrap text-[15px] leading-7 text-ink">{post.content}</p>
+                      ) : null}
+                      {!!post.images?.length && <ImagePager images={post.images} onOpen={setViewing} />}
                       <div className="mt-3 flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -332,6 +473,20 @@ export default function PlazaPage() {
           </ul>
         )}
       </div>
+      {viewing && (
+        <div className="modal-overlay bg-black/70" style={{ zIndex: 160 }} onClick={() => setViewing(null)}>
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img src={viewing} alt="帖子配图" className="max-h-[88vh] max-w-[min(1100px,94vw)] rounded-2xl bg-white object-contain shadow-2xl" />
+            <button
+              type="button"
+              onClick={() => setViewing(null)}
+              className="absolute -top-3 right-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink shadow"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

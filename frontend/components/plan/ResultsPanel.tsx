@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useDraftState } from '@/hooks/useDraftState';
 import { usePlan } from '@/components/plan/PlanPage';
 import { formatDuration } from '@/lib/format';
 import { describePartDetail, getCatalogRange, clampDailyMinutes, studySeconds } from '@/lib/planner';
@@ -40,18 +41,14 @@ export function ResultsPanel() {
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(() => new Set());
-  const [dailyDraft, setDailyDraft] = useState(String(dailyMinutes));
-  const [daysDraft, setDaysDraft] = useState(targetDays ? String(targetDays) : '');
-  const [mode, setMode] = useState<PlanInputMode>(targetDays ? 'days' : 'daily');
+  const [dailyDraft, setDailyDraft] = useDraftState('plan-daily', String(dailyMinutes));
+  const [daysDraft, setDaysDraft] = useDraftState('plan-days', targetDays ? String(targetDays) : '');
+  const [mode, setMode] = useDraftState<PlanInputMode>('plan-mode', targetDays ? 'days' : 'daily');
+  const [speedDraft, setSpeedDraft] = useDraftState('plan-speed', playbackSpeed);
 
   useEffect(() => {
-    setDailyDraft(String(dailyMinutes));
-  }, [dailyMinutes]);
-
-  useEffect(() => {
-    setDaysDraft(targetDays ? String(targetDays) : '');
-    setMode(targetDays ? 'days' : 'daily');
-  }, [targetDays]);
+    setPlaybackSpeed(speedDraft);
+  }, [speedDraft, setPlaybackSpeed]);
 
   useEffect(() => {
     if (selectedDayIdx !== null && selectedDayIdx >= plan.length) {
@@ -103,7 +100,7 @@ export function ResultsPanel() {
       }
       replanSchedule({
         dailyMinutes,
-        playbackSpeed,
+        playbackSpeed: speedDraft,
         targetDays: days
       });
       return;
@@ -112,7 +109,7 @@ export function ResultsPanel() {
     setDailyDraft(String(next));
     replanSchedule({
       dailyMinutes: next,
-      playbackSpeed,
+      playbackSpeed: speedDraft,
       targetDays: null
     });
   };
@@ -265,8 +262,8 @@ export function ResultsPanel() {
                     onDailyCommit={() => setDailyDraft(String(clampDailyMinutes(Number(dailyDraft))))}
                     daysDraft={daysDraft}
                     onDaysDraftChange={setDaysDraft}
-                    playbackSpeed={playbackSpeed}
-                    onPlaybackSpeedChange={setPlaybackSpeed}
+                    playbackSpeed={speedDraft}
+                    onPlaybackSpeedChange={setSpeedDraft}
                     radioName="results-plan-mode"
                   />
                   <div className="mt-3 flex flex-wrap items-center gap-3">

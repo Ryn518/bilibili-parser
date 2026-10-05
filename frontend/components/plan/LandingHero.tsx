@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useDraftState } from '@/hooks/useDraftState';
 import { parsePasteInput } from '@/lib/bvid';
 import { clampDailyMinutes } from '@/lib/planner';
 import { usePlan } from '@/components/plan/PlanPage';
@@ -24,20 +25,23 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
     loading
   } = usePlan();
   const showToast = useToast();
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useDraftState('plan-url', '');
   const [hint, setHint] = useState('');
-  const [dailyDraft, setDailyDraft] = useState(String(dailyMinutes));
-  const [daysDraft, setDaysDraft] = useState(targetDays ? String(targetDays) : '');
-  const [mode, setMode] = useState<PlanInputMode>(targetDays ? 'days' : 'daily');
+  const [dailyDraft, setDailyDraft] = useDraftState('plan-daily', String(dailyMinutes));
+  const [daysDraft, setDaysDraft] = useDraftState('plan-days', targetDays ? String(targetDays) : '');
+  const [mode, setMode] = useDraftState<PlanInputMode>('plan-mode', targetDays ? 'days' : 'daily');
+  const [speedDraft, setSpeedDraft] = useDraftState('plan-speed', playbackSpeed);
 
   useEffect(() => {
-    setDailyDraft(String(dailyMinutes));
-  }, [dailyMinutes]);
+    setPlaybackSpeed(speedDraft);
+  }, [speedDraft, setPlaybackSpeed]);
 
   useEffect(() => {
-    setDaysDraft(targetDays ? String(targetDays) : '');
-    if (targetDays) setMode('days');
-  }, [targetDays]);
+    if (!url.trim()) return;
+    updateHint(url);
+    // 只在草稿恢复后补一次识别提示
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
 
   const commitDaily = () => {
     const next = clampDailyMinutes(Number(dailyDraft));
@@ -74,7 +78,7 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
       startPlanning(url, {
         dailyMinutes,
         targetDays: days,
-        playbackSpeed
+        playbackSpeed: speedDraft
       });
       return;
     }
@@ -82,7 +86,7 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
     startPlanning(url, {
       dailyMinutes: nextDaily,
       targetDays: null,
-      playbackSpeed
+      playbackSpeed: speedDraft
     });
   };
 
@@ -167,8 +171,8 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
         onDailyCommit={commitDaily}
         daysDraft={daysDraft}
         onDaysDraftChange={setDaysDraft}
-        playbackSpeed={playbackSpeed}
-        onPlaybackSpeedChange={setPlaybackSpeed}
+        playbackSpeed={speedDraft}
+        onPlaybackSpeedChange={setSpeedDraft}
         radioName="landing-plan-mode"
       />
     </section>

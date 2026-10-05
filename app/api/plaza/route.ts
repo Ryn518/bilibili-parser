@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
     const result = await createPlazaPost({
       content: body.content,
       username: payload.username,
-      authorKey: `u:${payload.username}`
+      authorKey: `u:${payload.username}`,
+      images: body.images
     });
     if (result.error) {
       return NextResponse.json({ code: -1, message: result.error }, { status: result.status });
