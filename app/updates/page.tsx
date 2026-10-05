@@ -149,7 +149,6 @@ export default function UpdatesPage() {
       });
       const json = await res.json();
       if (!res.ok || json.code !== 0) throw new Error(json.message || '发布失败');
-      if (json.data?.id) localStorage.setItem('bili-planner-seen-update', json.data.id);
       setVersion('');
       setTitle('');
       setBody('');

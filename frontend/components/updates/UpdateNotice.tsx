@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const SEEN_KEY = 'bili-planner-seen-update';
+const SEEN_KEY = 'bili-planner-update-invite';
 
 interface SiteUpdate {
   id: string;
@@ -16,7 +16,6 @@ interface SiteUpdate {
 export function UpdateNotice() {
   const router = useRouter();
   const [item, setItem] = useState<SiteUpdate | null>(null);
-  const [viewing, setViewing] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,6 +23,10 @@ export function UpdateNotice() {
       .then((res) => res.json())
       .then((json) => {
         if (cancelled || json.code !== 0 || !json.data?.id) return;
+        if (window.location.pathname === '/updates') {
+          localStorage.setItem(SEEN_KEY, json.data.id);
+          return;
+        }
         const seen = localStorage.getItem(SEEN_KEY);
         if (seen === json.data.id) return;
         setItem(json.data);
@@ -43,20 +46,16 @@ export function UpdateNotice() {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 140 }}>
-      <div className={`modal ${item.images?.[0] ? 'max-w-[520px]' : 'max-w-[420px]'}`} onClick={(e) => e.stopPropagation()}>
-        <p className="text-xs font-semibold text-accent-text">网站更新了 · {item.version}</p>
-        <h3 className="mt-1 text-lg font-bold text-ink">{item.title}</h3>
-        {item.content ? (
-          <p className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-text2">{item.content}</p>
-        ) : null}
-        {item.images?.[0] ? (
-          <button type="button" onClick={() => setViewing(item.images?.[0] || null)} className="mt-3 block w-full overflow-hidden rounded-2xl border border-border bg-[#F7F9FC] text-left">
-            <img src={item.images[0]} alt="更新配图" className="max-h-56 w-full object-contain object-top" />
-          </button>
-        ) : null}
+      <div className="modal max-w-[380px] text-center" onClick={(e) => e.stopPropagation()}>
+        <p className="text-xs font-semibold text-accent-text">{item.version}</p>
+        <h3 className="mt-2 text-xl font-bold text-ink">去看看新的更新吧</h3>
+        <p className="mt-2 text-sm leading-relaxed text-text2">
+          {item.title ? `「${item.title}」已经发布。` : '有一条新更新。'}
+          到更新页可以看这次改了什么。
+        </p>
         <div className="mt-5 flex gap-2">
           <button type="button" onClick={close} className="flex-1 rounded-[10px] border border-border py-2.5 text-sm font-semibold text-text2">
-            知道了
+            先不用
           </button>
           <button
             type="button"
@@ -64,18 +63,13 @@ export function UpdateNotice() {
             onClick={() => {
               localStorage.setItem(SEEN_KEY, item.id);
               setItem(null);
-              router.push(`/updates#update-${item.id}`);
+              router.push('/updates');
             }}
           >
-            去看看并评论
+            去更新页
           </button>
         </div>
       </div>
-      {viewing && (
-        <div className="modal-overlay bg-black/70" style={{ zIndex: 170 }} onClick={() => setViewing(null)}>
-          <img src={viewing} alt="更新配图" className="max-h-[88vh] max-w-[min(1100px,94vw)] rounded-2xl bg-white object-contain shadow-2xl" />
-        </div>
-      )}
     </div>
   );
 }

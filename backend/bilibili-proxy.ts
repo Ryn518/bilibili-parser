@@ -86,6 +86,54 @@ function asPages(raw: unknown): Record<string, unknown>[] {
   return raw as Record<string, unknown>[];
 }
 
+interface SeasonEpisode {
+  title?: string;
+  page?: { part?: string; duration?: number };
+  pages?: { part?: string; duration?: number }[];
+  arc?: { title?: string; duration?: number };
+}
+
+interface SeasonSection {
+  title?: string;
+  episodes?: SeasonEpisode[];
+}
+
+/** 合集（ugc_season）展开成课程分集。只有一条视频时返回空，交给分 P 逻辑。 */
+export function episodesFromSeason(season: unknown): { title: string; duration: number }[] {
+  if (!season || typeof season !== 'object') return [];
+  const sections = (season as { sections?: SeasonSection[] }).sections;
+  if (!Array.isArray(sections) || !sections.length) return [];
+
+  const filled = sections.filter((sec) => (sec.episodes || []).length > 0);
+  const multiSection = filled.length > 1;
+  const list: { title: string; duration: number }[] = [];
+
+  for (const section of filled) {
+    for (const episode of section.episodes || []) {
+      const pages = Array.isArray(episode.pages) && episode.pages.length ? episode.pages : [];
+      const baseTitle = String(episode.title || episode.arc?.title || episode.page?.part || '').trim();
+      const prefix = multiSection && section.title ? `${section.title} · ` : '';
+      if (pages.length > 1) {
+        pages.forEach((page, index) => {
+          const part = String(page.part || '').trim();
+          list.push({
+            title: `${prefix}${part || baseTitle || `P${index + 1}`}`,
+            duration: Number(page.duration) || 0
+          });
+        });
+        continue;
+      }
+      if (!baseTitle) continue;
+      list.push({
+        title: `${prefix}${baseTitle}`,
+        duration: Number(episode.arc?.duration || episode.page?.duration || pages[0]?.duration) || 0
+      });
+    }
+  }
+
+  return list.length > 1 ? list : [];
+}
+
 function buildCourse(viewData: Record<string, unknown>, pages: Record<string, unknown>[], bvid: string): Course {
   const episodes: Episode[] = pages.map((p, i) => ({
     index: i,
@@ -139,7 +187,26 @@ export async function handleCourse(bvid: string, clientKey?: string): Promise<Co
     viewErr = e as Error;
   }
 
-  // pages 已够用 → 立即返回（通常 1 次 RTT）
+  // 合集：同一个课程下有多条独立视频，view 里的 pages 只有当前这一条
+  if (viewData) {
+    const seasonParts = episodesFromSeason(viewData.ugc_season);
+    if (seasonParts.length > 1) {
+      const season = viewData.ugc_season as { title?: string; cover?: string };
+      const course = buildCourse(
+        {
+          ...viewData,
+          title: season.title || viewData.title,
+          pic: season.cover || viewData.pic
+        },
+        seasonParts.map((part) => ({ part: part.title, duration: part.duration })),
+        bvid
+      );
+      setCached(bvid, course);
+      return course;
+    }
+  }
+
+  // 分 P：pages 已够用 → 立即返回（通常 1 次 RTT）
   if (pages.length && viewData) {
     const course = buildCourse(viewData, pages, bvid);
     setCached(bvid, course);
