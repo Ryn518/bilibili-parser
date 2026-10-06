@@ -112,18 +112,17 @@ export function DayCalendar({ selected, onSelect, marked, queryLabel }: Props) {
               key={cell.key}
               type="button"
               onClick={() => onSelect(cell.key)}
-              className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm transition ${
+              className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm transition ${
                 active
                   ? 'bg-accent font-semibold text-white'
-                  : cell.inMonth
-                    ? 'text-ink hover:bg-accent-light'
-                    : 'text-text3/50 hover:bg-surface2'
+                  : has
+                    ? 'bg-accent-light font-semibold text-accent-text hover:bg-[#BFDBFE]'
+                    : cell.inMonth
+                      ? 'text-ink hover:bg-accent-light'
+                      : 'text-text3/50 hover:bg-surface2'
               }`}
             >
               {cell.day}
-              {has && !active ? (
-                <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-accent" />
-              ) : null}
             </button>
           );
         })}
