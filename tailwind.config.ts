@@ -39,7 +39,14 @@ const config: Config = {
         sm: '10px'
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif']
+        sans: [
+          'Inter',
+          'PingFang SC',
+          'Hiragino Sans GB',
+          'Microsoft YaHei',
+          'system-ui',
+          'sans-serif'
+        ]
       }
     }
   },

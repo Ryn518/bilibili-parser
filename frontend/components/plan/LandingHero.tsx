@@ -91,13 +91,13 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
   };
 
   return (
-    <section className="mx-auto max-w-[760px] py-12 text-center max-md:px-1 max-md:py-8">
-      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-text2 max-md:mb-4 max-md:text-[11px]">
-        <span className="h-1.5 w-1.5 rounded-full bg-green-600 shadow-[0_0_0_3px_rgba(5,150,105,0.12)]" />
+    <section className="mx-auto max-w-[760px] py-12 text-center max-md:py-7">
+      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-text2 max-md:mb-4 max-md:max-w-full max-md:px-3 max-md:text-[11px]">
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-600 shadow-[0_0_0_3px_rgba(5,150,105,0.12)]" />
         完全免费 · 粘贴即规划 · 登录可保存课程
       </div>
-      <h1 className="mb-3.5 text-4xl font-extrabold tracking-tight text-ink max-md:mb-2.5 max-md:text-[1.75rem] max-md:leading-tight md:text-5xl">
-        万能课表规划器，<span className="text-accent-text">一键生成</span>
+      <h1 className="mb-3.5 text-4xl font-extrabold tracking-tight text-ink max-md:mb-2.5 max-md:flex max-md:flex-col max-md:text-[1.7rem] max-md:leading-snug md:text-5xl">
+        万能课表规划器，<span className="text-accent-text max-md:whitespace-nowrap">一键生成</span>
       </h1>
       <p className="mx-auto mb-7 max-w-xl text-base leading-relaxed text-text2 max-md:mb-5 max-md:text-sm">
         粘贴 B 站课程链接，智能解析分 P 时长，按每日学习量自动切分日程

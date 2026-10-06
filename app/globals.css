@@ -5,10 +5,12 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
-    @apply min-h-dvh bg-bg text-ink font-sans text-sm leading-normal antialiased;
+    @apply min-h-dvh overflow-x-hidden bg-bg text-ink font-sans text-sm leading-normal antialiased;
     background-image:
       radial-gradient(ellipse 80% 55% at 50% 0%, rgba(59, 130, 246, 0.16), transparent 55%),
       radial-gradient(ellipse 50% 40% at 0% 100%, rgba(37, 99, 235, 0.1), transparent 50%),

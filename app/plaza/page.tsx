@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDraftState } from '@/hooks/useDraftState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/hooks/useToast';
 import { useUiStore } from '@/hooks/useUiStore';
+import { FeedBoard } from '@/components/feed/FeedBoard';
+import { dateKey } from '@/lib/date-key';
 
 interface PlazaComment {
   id: string;
@@ -168,6 +170,13 @@ export default function PlazaPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ message: string; run: () => Promise<void> } | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | 'all'>('all');
+
+  const markedDays = useMemo(() => new Set(posts.map((post) => dateKey(post.createdAt)).filter(Boolean)), [posts]);
+  const visiblePosts = useMemo(
+    () => (selectedDay === 'all' ? posts : posts.filter((post) => dateKey(post.createdAt) === selectedDay)),
+    [posts, selectedDay]
+  );
 
   const load = useCallback(async () => {
     if (!auth.session?.token) {
@@ -343,17 +352,20 @@ export default function PlazaPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-5 py-6">
-      <div className="min-h-[calc(100dvh-11rem)] overflow-hidden rounded-[28px] bg-white shadow-[0_10px_32px_rgba(30,64,175,0.06)]">
-        <div className="px-5 pb-2 pt-5 sm:px-6">
-          <h1 className="text-lg font-bold text-ink">广场</h1>
-          <p className="mt-1 text-sm text-text3">说说使用感受，或提出你希望加上的功能。</p>
-        </div>
-
-        <div className="px-4 pb-4 sm:px-5">
+    <>
+    <FeedBoard
+      eyebrow="COMMUNITY BOARD"
+      title="广场"
+      subtitle="使用感受 · 功能建议 · 大家一起说"
+      queryLabel="根据指定日期查看广场"
+      selected={selectedDay}
+      onSelect={setSelectedDay}
+      marked={markedDays}
+      toolbar={
+        <div className="rounded-[22px] bg-white p-3 shadow-[0_8px_24px_rgba(30,64,175,0.06)] sm:p-4">
           <div className="rounded-[22px] bg-[#E6EDF6] p-3 sm:p-4">
             <div className="flex gap-3">
-              <Avatar name={auth.session.username} />
+              <Avatar name={auth.session?.username || '访'} />
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -391,14 +403,17 @@ export default function PlazaPage() {
             </div>
           </div>
         </div>
-
+      }
+    >
         {loading ? (
           <p className="px-6 py-10 text-center text-sm text-text3">加载中…</p>
-        ) : posts.length === 0 ? (
-          <p className="px-6 py-10 text-center text-sm text-text3">还没有帖子，来发第一条吧。</p>
+        ) : visiblePosts.length === 0 ? (
+          <p className="px-6 py-10 text-center text-sm text-text3">
+            {selectedDay === 'all' ? '还没有帖子，来发第一条吧。' : '这一天还没有广场帖子。'}
+          </p>
         ) : (
           <ul>
-            {posts.map((post) => {
+            {visiblePosts.map((post) => {
               const opened = openId === post.id;
               return (
                 <li key={post.id} className="border-t border-[#E6EDF5] px-5 py-5 sm:px-6">
@@ -492,7 +507,7 @@ export default function PlazaPage() {
             })}
           </ul>
         )}
-      </div>
+    </FeedBoard>
       <ConfirmDialog
         open={!!pendingDelete}
         message={pendingDelete?.message || ''}
@@ -517,6 +532,6 @@ export default function PlazaPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

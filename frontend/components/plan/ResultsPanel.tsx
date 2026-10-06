@@ -120,11 +120,13 @@ export function ResultsPanel() {
         <button
           type="button"
           onClick={backToHome}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-text2 shadow hover:border-accent hover:text-accent-text"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-text2 shadow hover:border-accent hover:text-accent-text"
         >
           ← 返回首页
         </button>
-        <span className="text-sm font-semibold text-text2">我的课表 · {course.title.slice(0, 36)}</span>
+        <span className="min-w-0 flex-1 text-sm font-semibold text-text2 max-md:line-clamp-2">
+          我的课表 · {course.title}
+        </span>
       </div>
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(260px,300px)_1fr]">
@@ -185,13 +187,13 @@ export function ResultsPanel() {
 
         <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
           <div className="border-b border-border2 bg-surface2/80 p-2">
-            <div className="flex flex-wrap gap-1 rounded-full border border-border bg-surface2 p-1">
+            <div className="grid grid-cols-4 gap-1 rounded-2xl border border-border bg-surface2 p-1 max-md:rounded-2xl md:flex md:flex-wrap md:rounded-full">
               {TABS.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`rounded-full px-3.5 py-2 text-sm font-medium transition sm:px-4 ${
+                  className={`rounded-full py-2 text-center text-xs font-medium transition md:px-3.5 md:text-sm sm:px-4 ${
                     tab === t.id
                       ? 'bg-surface text-ink shadow-sm ring-1 ring-accent/25'
                       : 'text-text2 hover:text-ink'

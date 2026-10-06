@@ -48,20 +48,24 @@ export function FeedbackFab() {
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-[120] flex flex-col items-end gap-2.5">
+      <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-[120] flex flex-col items-end gap-2 md:bottom-5 md:right-5 md:gap-2.5">
         <button
           type="button"
           onClick={openTip}
-          className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/95 px-4 py-2.5 text-xs font-medium text-amber-900/80 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100/95"
+          aria-label="请作者喝杯咖啡"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/95 text-xs font-medium text-amber-900/80 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100/95 max-md:h-11 max-md:w-11 md:px-4 md:py-2.5"
         >
-          请作者喝杯咖啡
+          <span className="md:hidden">☕</span>
+          <span className="hidden md:inline">请作者喝杯咖啡</span>
         </button>
         <button
           type="button"
           onClick={openFeedback}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-4 py-2.5 text-xs font-medium text-text2 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-accent hover:text-accent-text"
+          aria-label="悄悄话"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-white/95 text-xs font-medium text-text2 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:border-accent hover:text-accent-text max-md:h-11 max-md:w-11 md:px-4 md:py-2.5"
         >
-          <span>💬</span> 悄悄话
+          <span>💬</span>
+          <span className="hidden md:inline">悄悄话</span>
         </button>
       </div>
       {feedbackOpen && (

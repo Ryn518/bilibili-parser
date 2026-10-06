@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDraftState } from '@/hooks/useDraftState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/hooks/useToast';
+import { FeedBoard } from '@/components/feed/FeedBoard';
+import { dateKey } from '@/lib/date-key';
 
 interface UpdateComment {
   id: string;
@@ -100,6 +102,13 @@ export default function UpdatesPage() {
   const [drafts, setDrafts] = useDraftState<Record<string, string>>('updates-comments', {});
   const [publishing, setPublishing] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ message: string; run: () => Promise<void> } | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | 'all'>('all');
+
+  const markedDays = useMemo(() => new Set(items.map((item) => dateKey(item.createdAt)).filter(Boolean)), [items]);
+  const visibleItems = useMemo(
+    () => (selectedDay === 'all' ? items : items.filter((item) => dateKey(item.createdAt) === selectedDay)),
+    [items, selectedDay]
+  );
 
   const load = useCallback(async () => {
     const res = await fetch('/api/updates');
@@ -215,13 +224,18 @@ export default function UpdatesPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-5 py-6">
-      <div className="min-h-[calc(100dvh-11rem)] rounded-[28px] bg-white px-5 py-5 shadow-[0_10px_32px_rgba(30,64,175,0.06)] sm:px-6">
-      <h1 className="text-lg font-bold text-ink">更新</h1>
-      <p className="mt-1 text-sm leading-relaxed text-text3">这里记录网站改了什么。发布新更新后，大家再次打开网站时会看到提醒，也可以在这里评论。</p>
-
-      {auth.isAdmin && (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+    <>
+    <FeedBoard
+      eyebrow="TODAY TOP NEWS"
+      title="站点更新"
+      subtitle="版本记录 · 功能进展 · 当天速览"
+      queryLabel="根据指定日期查看更新"
+      selected={selectedDay}
+      onSelect={setSelectedDay}
+      marked={markedDays}
+      toolbar={
+        auth.isAdmin ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
           <p className="text-sm font-semibold text-ink">发布一条更新</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr]">
             <input
@@ -283,15 +297,18 @@ export default function UpdatesPage() {
             </button>
           </div>
         </div>
-      )}
-
+        ) : null
+      }
+    >
       {loading ? (
         <p className="py-10 text-center text-text2">加载中…</p>
-      ) : items.length === 0 ? (
-        <p className="py-10 text-center text-text2">还没有更新记录。</p>
+      ) : visibleItems.length === 0 ? (
+        <p className="py-10 text-center text-text2">
+          {selectedDay === 'all' ? '还没有更新记录。' : '这一天还没有更新。'}
+        </p>
       ) : (
-        <ul className="mt-5 space-y-4">
-          {items.map((item) => (
+        <ul className="space-y-4 p-4 sm:p-5">
+          {visibleItems.map((item) => (
             <li key={item.id} id={`update-${item.id}`} className="rounded-2xl border border-border bg-white/80 p-4 shadow-sm">
               <div className={`grid items-stretch gap-3 ${item.images?.length ? 'lg:grid-cols-[minmax(0,1fr)_minmax(360px,44%)]' : ''}`}>
               <div>
@@ -320,7 +337,7 @@ export default function UpdatesPage() {
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-text2">{item.content}</p>
               ) : null}
 
-              <div className={`${item.content ? 'mt-4' : ''} max-w-[420px] space-y-2 border-t border-border/70 pt-3`}>
+              <div className={`${item.content ? 'mt-4' : ''} max-w-[420px] space-y-2 border-t border-border/70 pt-3 max-md:max-w-none`}>
                 {item.comments.map((row) => (
                   <div key={row.id} className="rounded-xl bg-surface2 px-3 py-2">
                     <div className="flex items-center justify-between gap-2">
@@ -351,24 +368,28 @@ export default function UpdatesPage() {
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder="怎么称呼你（选填）"
-                    className="w-full rounded-full border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+                    className="w-full rounded-full border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent max-md:rounded-xl max-md:py-3 max-md:text-base"
                   />
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 max-md:flex-col">
                   <input
                     value={drafts[item.id] || ''}
                     onChange={(e) => setDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
                     placeholder="对这次更新说点什么"
-                    className="min-w-0 flex-1 rounded-full border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+                    className="min-w-0 flex-1 rounded-full border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent max-md:rounded-xl max-md:py-3 max-md:text-base"
                   />
-                  <button type="button" onClick={() => comment(item.id)} className="shrink-0 rounded-full border border-border px-3 text-xs font-semibold text-text2">
+                  <button
+                    type="button"
+                    onClick={() => comment(item.id)}
+                    className="shrink-0 rounded-full border border-border px-3 text-xs font-semibold text-text2 max-md:h-11 max-md:w-full max-md:rounded-xl max-md:text-sm"
+                  >
                     评论
                   </button>
                 </div>
               </div>
               </div>
               {!!item.images?.length && (
-                <div className="relative grid h-full min-h-[260px] gap-2 pr-12">
+                <div className="relative grid h-full min-h-[260px] gap-2 pr-12 max-md:min-h-0 max-md:pr-0">
                   {auth.isAdmin && (
                     <button
                       type="button"
@@ -388,10 +409,16 @@ export default function UpdatesPage() {
                       key={src}
                       type="button"
                       onClick={() => setViewing(src)}
-                      className="relative h-full min-h-[260px] overflow-hidden rounded-2xl border border-border bg-[#F7F9FC] text-left transition hover:border-accent/40"
+                      className="relative h-full min-h-[260px] overflow-hidden rounded-2xl border border-border bg-[#F7F9FC] text-left transition hover:border-accent/40 max-md:min-h-0"
                     >
-                      <img src={src} alt="更新配图" className="absolute inset-x-0 top-0 h-[calc(100%-1.75rem)] w-full object-contain object-left" />
-                      <span className="absolute inset-x-0 bottom-0 py-1.5 text-center text-[0.68rem] text-text3">点击放大</span>
+                      <img
+                        src={src}
+                        alt="更新配图"
+                        className="absolute inset-x-0 top-0 h-[calc(100%-1.75rem)] w-full object-contain object-left max-md:static max-md:mx-auto max-md:h-auto max-md:max-h-[min(52vh,22rem)]"
+                      />
+                      <span className="absolute inset-x-0 bottom-0 py-1.5 text-center text-[0.68rem] text-text3 max-md:static max-md:block max-md:border-t max-md:border-border/60">
+                        点击放大
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -401,7 +428,7 @@ export default function UpdatesPage() {
           ))}
         </ul>
       )}
-      </div>
+    </FeedBoard>
       <ConfirmDialog
         open={!!pendingDelete}
         message={pendingDelete?.message || ''}
@@ -413,19 +440,19 @@ export default function UpdatesPage() {
         }}
       />
       {viewing && (
-        <div className="modal-overlay bg-black/70" style={{ zIndex: 160 }} onClick={() => setViewing(null)}>
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <img src={viewing} alt="更新配图" className="max-h-[88vh] max-w-[min(1100px,94vw)] rounded-2xl bg-white object-contain shadow-2xl" />
+        <div className="modal-overlay bg-black/70 max-md:p-3" style={{ zIndex: 160 }} onClick={() => setViewing(null)}>
+          <div className="relative max-md:w-full max-md:max-w-[min(100%,1100px)]" onClick={(e) => e.stopPropagation()}>
+            <img src={viewing} alt="更新配图" className="max-h-[88vh] max-w-[min(1100px,94vw)] rounded-2xl bg-white object-contain shadow-2xl max-md:max-h-[80dvh] max-md:w-full max-md:max-w-none" />
             <button
               type="button"
               onClick={() => setViewing(null)}
-              className="absolute -top-3 right-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink shadow sm:-right-3"
+              className="absolute -top-3 right-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink shadow sm:-right-3 max-md:right-2 max-md:top-2 max-md:sm:right-2"
             >
               关闭
             </button>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

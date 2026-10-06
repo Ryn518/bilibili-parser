@@ -48,7 +48,7 @@ export function MinePageClient() {
   };
 
   return (
-    <div className="mx-auto max-w-[1080px] px-5 py-10">
+    <div className="mx-auto max-w-[1080px] px-5 py-10 max-md:px-4 max-md:pb-28">
       <h1 className="mb-6 text-2xl font-bold text-ink">我的课程</h1>
       {!auth.session ? (
         <p className="text-text2">请先登录后查看你的课程记录。</p>

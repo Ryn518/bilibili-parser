@@ -525,7 +525,7 @@ export function PlanPage() {
 
   return (
     <PlanContext.Provider value={value}>
-      <div className="mx-auto max-w-[1180px] px-5 pb-16">
+      <div className="mx-auto max-w-[1180px] px-5 pb-16 max-md:px-4 max-md:pb-28">
         {!showResults && (
           <LandingHero
             continueCache={continueCache}

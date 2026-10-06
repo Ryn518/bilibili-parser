@@ -111,7 +111,7 @@ export function PlanSettingsRow({
             </label>
           )}
 
-          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-end">
+          <div className="flex flex-nowrap items-center justify-center gap-1 overflow-x-auto pb-0.5 sm:flex-wrap sm:justify-end sm:overflow-visible">
             <span className="mr-0.5 text-xs font-medium text-text3">倍速</span>
             {PLAYBACK_SPEEDS.map((s) => (
               <button
