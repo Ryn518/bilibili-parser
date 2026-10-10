@@ -38,10 +38,9 @@ export function Topbar() {
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep text-sm text-white shadow">
               📚
             </span>
-            <span className="hidden sm:inline">视频课表规划器</span>
-            <span className="sm:hidden">课表</span>
+            <span>DayPlan</span>
             <span className="ml-0.5 hidden rounded-full border border-border bg-surface2 px-2 py-0.5 text-[0.68rem] font-medium text-text2 md:inline">
-              智能规划
+              视频课表
             </span>
           </Link>
 

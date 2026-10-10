@@ -33,7 +33,7 @@ export function SiteFooter() {
           </button>
         </div>
         <p className="mt-4 text-[0.68rem] text-text3">
-          视频课表规划器 v2.3.0 · 仅供个人学习规划 · 与视频平台无官方关联
+          DayPlan v2.3.0 · 仅供个人学习规划 · 与视频平台无官方关联
         </p>
         <p className="mt-2 text-[0.68rem] text-text3">
           <a
