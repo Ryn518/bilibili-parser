@@ -2,6 +2,15 @@ export interface Episode {
   index: number;
   title: string;
   duration: number;
+  /** 多合集时，这一集属于哪一节 */
+  sectionId?: string;
+}
+
+export interface CourseSection {
+  id: string;
+  title: string;
+  episodeCount: number;
+  totalSeconds: number;
 }
 
 export interface PlanPart {
@@ -29,6 +38,10 @@ export interface Course {
   cover: string;
   totalSeconds: number;
   episodes: Episode[];
+  /** 同一个链接里有多门课时才有，供用户勾选 */
+  sections?: CourseSection[];
+  /** 用户粘贴的那一集落在哪一门 */
+  currentSectionId?: string;
 }
 
 export interface AuthSession {

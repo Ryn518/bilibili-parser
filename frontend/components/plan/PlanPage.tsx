@@ -28,6 +28,8 @@ import { useToast } from '@/hooks/useToast';
 import { LandingHero } from '@/components/plan/LandingHero';
 import { ResultsPanel } from '@/components/plan/ResultsPanel';
 import { LoadingOverlay } from '@/components/plan/LoadingOverlay';
+import { SeasonPicker } from '@/components/plan/SeasonPicker';
+import { courseFromSections } from '@/lib/season-course';
 
 interface PlanContextValue {
   course: Course | null;
@@ -94,6 +96,10 @@ export function PlanPage() {
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [continueCache, setContinueCache] = useState<PlanCache | null>(null);
+  const [seasonPick, setSeasonPick] = useState<{
+    course: Course;
+    opts?: { dailyMinutes?: number; targetDays?: number | null; playbackSpeed?: number };
+  } | null>(null);
 
   const persistProgress = useCallback(
     (bvid: string, patch: Partial<ProgressRecord>, snapshot?: PlanCache) => {
@@ -299,6 +305,40 @@ export function PlanPage() {
     }
   }, [auth.loading, auth.storageReady, auth.session?.username, resolveCourseParam, restoreFromCache, showToast]);
 
+  const commitPlan = useCallback(
+    (courseData: Course, opts?: { dailyMinutes?: number; targetDays?: number | null; playbackSpeed?: number }) => {
+      const speed = clampPlaybackSpeed(opts?.playbackSpeed ?? playbackSpeed);
+      const days = opts?.targetDays != null && opts.targetDays > 0 ? clampTargetDays(opts.targetDays) : null;
+      const wall = days
+        ? wallClockMinutesFromTargetDays(courseData.totalSeconds, days, speed)
+        : clampDailyMinutes(opts?.dailyMinutes ?? dailyMinutes);
+      const planData = generatePlan(courseData.episodes, videoBudgetMinutes(wall, speed));
+      if (!planData.length) {
+        showToast('未能生成课表，请检查课程分P数据');
+        return;
+      }
+      setDailyMinutes(wall);
+      setPlaybackSpeed(speed);
+      setTargetDays(days);
+      setSkippedIndexes([]);
+      renderPlan(courseData, planData, wall, undefined, {
+        playbackSpeed: speed,
+        targetDays: days,
+        skippedIndexes: []
+      });
+      if (!authRef.current.session) {
+        showToast('课表已生成 · 登录后可保存到「我的课程」');
+      } else if (days) {
+        showToast(`已按 ${days} 天倒推：每天约 ${wall} 分钟 · ${speed}x，共 ${planData.length} 天`);
+      } else if (speed !== 1) {
+        showToast(`课表规划完成 · ${speed}x 每天 ${wall} 分钟约看 ${Math.round(wall * speed)} 分钟视频`);
+      } else {
+        showToast('课表规划完成');
+      }
+    },
+    [showToast, dailyMinutes, playbackSpeed, renderPlan]
+  );
+
   const startPlanning = useCallback(
     async (
       url: string,
@@ -324,42 +364,18 @@ export function PlanPage() {
       setLoading(true);
       try {
         const courseData = await fetchCourse(trimmed);
-        const speed = clampPlaybackSpeed(opts?.playbackSpeed ?? playbackSpeed);
-        const days =
-          opts?.targetDays != null && opts.targetDays > 0 ? clampTargetDays(opts.targetDays) : null;
-        const wall = days
-          ? wallClockMinutesFromTargetDays(courseData.totalSeconds, days, speed)
-          : clampDailyMinutes(opts?.dailyMinutes ?? dailyMinutes);
-        const planData = generatePlan(courseData.episodes, videoBudgetMinutes(wall, speed));
-        if (!planData.length) {
-          showToast('未能生成课表，请检查课程分P数据');
+        if (courseData.sections && courseData.sections.length > 1) {
+          setSeasonPick({ course: courseData, opts });
           return;
         }
-        setDailyMinutes(wall);
-        setPlaybackSpeed(speed);
-        setTargetDays(days);
-        setSkippedIndexes([]);
-        renderPlan(courseData, planData, wall, undefined, {
-          playbackSpeed: speed,
-          targetDays: days,
-          skippedIndexes: []
-        });
-        if (!authRef.current.session) {
-          showToast('课表已生成 · 登录后可保存到「我的课程」');
-        } else if (days) {
-          showToast(`已按 ${days} 天倒推：每天约 ${wall} 分钟 · ${speed}x，共 ${planData.length} 天`);
-        } else if (speed !== 1) {
-          showToast(`课表规划完成 · ${speed}x 每天 ${wall} 分钟约看 ${Math.round(wall * speed)} 分钟视频`);
-        } else {
-          showToast('课表规划完成');
-        }
+        commitPlan(courseData, opts);
       } catch (err) {
         showToast(err instanceof Error ? err.message : '规划失败');
       } finally {
         setLoading(false);
       }
     },
-    [showToast, dailyMinutes, playbackSpeed, renderPlan]
+    [showToast, commitPlan]
   );
 
   const toggleDayComplete = useCallback(
@@ -546,6 +562,22 @@ export function PlanPage() {
           <div className="py-16 text-center text-text2">课表为空，请重新规划。</div>
         )}
         <LoadingOverlay show={loading} />
+        {seasonPick ? (
+          <SeasonPicker
+            course={seasonPick.course}
+            onCancel={() => setSeasonPick(null)}
+            onConfirm={(sectionIds) => {
+              const next = courseFromSections(seasonPick.course, sectionIds);
+              const opts = seasonPick.opts;
+              setSeasonPick(null);
+              if (!next.episodes.length) {
+                showToast('这一门里没有可排的视频');
+                return;
+              }
+              commitPlan(next, opts);
+            }}
+          />
+        ) : null}
       </div>
     </PlanContext.Provider>
   );

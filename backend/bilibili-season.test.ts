@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { episodesFromSeason } from './bilibili-proxy';
+import { episodesFromSeason, readSeason } from './bilibili-proxy';
 
 describe('episodesFromSeason', () => {
   it('returns nothing when the video is not in a collection', () => {
@@ -52,5 +52,67 @@ describe('episodesFromSeason', () => {
       { title: '下', duration: 20 },
       { title: '第二讲', duration: 30 }
     ]);
+  });
+
+  it('treats each multi-part video in one season as its own course', () => {
+    const outline = readSeason(
+      {
+        title: '王道考研408公益课程',
+        sections: [
+          {
+            id: 1,
+            title: '正片',
+            episodes: [
+              {
+                title: '王道计算机考研 数据结构',
+                bvid: 'BV1ds',
+                pages: [
+                  { part: '线性表', duration: 100 },
+                  { part: '树', duration: 200 }
+                ]
+              },
+              {
+                title: '王道计算机考研 操作系统',
+                bvid: 'BV1os',
+                pages: [
+                  { part: '概念', duration: 300 },
+                  { part: '特征', duration: 400 }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      'BV1os'
+    );
+    expect(outline?.sections.map((section) => section.title)).toEqual(['王道计算机考研 数据结构', '王道计算机考研 操作系统']);
+    expect(outline?.currentSectionId).toBe('BV1os');
+    expect(outline?.episodes.filter((episode) => episode.sectionId === 'BV1os').map((episode) => episode.title)).toEqual([
+      '概念',
+      '特征'
+    ]);
+  });
+
+  it('keeps sections separate and marks the video the user pasted', () => {
+    const outline = readSeason(
+      {
+        title: '王道408',
+        sections: [
+          { id: 1, title: '数据结构', episodes: [{ title: '线性表', bvid: 'BV1data', arc: { duration: 100 } }] },
+          {
+            id: 2,
+            title: '操作系统',
+            episodes: [
+              { title: '概念', bvid: 'BV1os', arc: { duration: 200 } },
+              { title: '特征', bvid: 'BV1os2', arc: { duration: 300 } }
+            ]
+          }
+        ]
+      },
+      'BV1os'
+    );
+    expect(outline?.sections.map((section) => section.title)).toEqual(['数据结构', '操作系统']);
+    expect(outline?.currentSectionId).toBe('2');
+    expect(outline?.episodes.map((episode) => episode.title)).toEqual(['线性表', '概念', '特征']);
   });
 });
