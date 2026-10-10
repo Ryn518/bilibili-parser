@@ -1,4 +1,6 @@
 import { fetchCourse } from '@/lib/bilibili-client';
+import { displayBvid } from '@/lib/bvid';
+import { courseFromSections } from '@/lib/season-course';
 import { clampPlaybackSpeed, episodesForPlan, generatePlan, studySeconds, videoBudgetMinutes, wallClockMinutesFromTargetDays } from '@/lib/planner';
 import { findProgressEntry, openCourseFromHistory } from '@/components/plan/plan-utils';
 import { pullAndMergeCloudSync } from '@/lib/cloud-sync';
@@ -83,8 +85,11 @@ export async function restoreCourseForMine(opts: RestoreCourseOptions): Promise<
   const days = ctx.saved?.planSnapshot?.targetDays ?? null;
 
   try {
-    const url = `https://www.bilibili.com/video/${ctx.canonicalBvid}`;
-    const courseData = await fetchCourse(url);
+    const sourceBvid = displayBvid(ctx.canonicalBvid);
+    const url = `https://www.bilibili.com/video/${sourceBvid}`;
+    const fetched = await fetchCourse(url);
+    const sectionPart = ctx.canonicalBvid.includes('::') ? ctx.canonicalBvid.split('::')[1] : '';
+    const courseData = sectionPart ? courseFromSections(fetched, sectionPart.split(',').filter(Boolean)) : fetched;
     const included = episodesForPlan(courseData.episodes, skipped);
     const planned = included.length ? included : courseData.episodes;
     const seconds = studySeconds(courseData.episodes, included.length ? skipped : []);

@@ -10,6 +10,12 @@ export function bvidMatch(a: string, b: string): boolean {
   return !!a && !!b && a === b;
 }
 
+/** 同一条链接拆成多门课时，存储 id 是「BV号::课的 id」。页面上只显示 BV 号。 */
+export function displayBvid(id: string): string {
+  const cut = id.indexOf('::');
+  return cut === -1 ? id : id.slice(0, cut);
+}
+
 export function cleanPasteText(raw: string): string {
   return String(raw)
     .replace(/[\u200B-\u200D\uFEFF]/g, '')

@@ -11,6 +11,8 @@ export interface CourseSection {
   title: string;
   episodeCount: number;
   totalSeconds: number;
+  /** 这一门课自己的封面。多门一起排时不用它 */
+  cover?: string;
 }
 
 export interface PlanPart {

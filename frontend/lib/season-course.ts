@@ -8,6 +8,10 @@ export function courseFromSections(course: Course, sectionIds: string[]): Course
   const allowed = new Set(selected.map((section) => section.id));
   const source = course.episodes.filter((episode) => episode.sectionId && allowed.has(episode.sectionId));
   const multi = selected.length > 1;
+  const allIds = (course.sections ?? []).map((section) => section.id);
+  const chosenIds = selected.map((section) => section.id);
+  const wholeSeason = allIds.length > 0 && allIds.every((id) => chosenIds.includes(id));
+  const bvid = wholeSeason ? course.bvid : `${course.bvid}::${[...chosenIds].sort().join(',')}`;
   const episodes: Episode[] = source.map((episode, index) => {
     const section = selected.find((item) => item.id === episode.sectionId);
     const title = multi && section ? `${section.title} · ${episode.title}` : episode.title;
@@ -15,9 +19,9 @@ export function courseFromSections(course: Course, sectionIds: string[]): Course
   });
 
   return {
-    bvid: course.bvid,
+    bvid,
     title: selected.length === 1 ? selected[0].title : course.title,
-    cover: course.cover,
+    cover: selected.length === 1 && selected[0].cover ? selected[0].cover : course.cover,
     totalSeconds: episodes.reduce((sum, episode) => sum + episode.duration, 0),
     episodes
   };

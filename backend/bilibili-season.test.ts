@@ -74,6 +74,7 @@ describe('episodesFromSeason', () => {
               {
                 title: '王道计算机考研 操作系统',
                 bvid: 'BV1os',
+                arc: { pic: 'http://example.com/os.jpg' },
                 pages: [
                   { part: '概念', duration: 300 },
                   { part: '特征', duration: 400 }
@@ -87,6 +88,7 @@ describe('episodesFromSeason', () => {
     );
     expect(outline?.sections.map((section) => section.title)).toEqual(['王道计算机考研 数据结构', '王道计算机考研 操作系统']);
     expect(outline?.currentSectionId).toBe('BV1os');
+    expect(outline?.sections.find((section) => section.id === 'BV1os')?.cover).toBe('https://example.com/os.jpg');
     expect(outline?.episodes.filter((episode) => episode.sectionId === 'BV1os').map((episode) => episode.title)).toEqual([
       '概念',
       '特征'

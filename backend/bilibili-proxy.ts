@@ -92,7 +92,7 @@ interface SeasonEpisode {
   cid?: number;
   page?: { cid?: number; part?: string; duration?: number };
   pages?: { cid?: number; part?: string; duration?: number }[];
-  arc?: { title?: string; duration?: number; bvid?: string };
+  arc?: { title?: string; duration?: number; bvid?: string; pic?: string };
 }
 
 interface SeasonSection {
@@ -112,7 +112,7 @@ export interface SeasonOutlineEpisode {
 export interface SeasonOutline {
   title: string;
   cover: string;
-  sections: { id: string; title: string; episodeCount: number; totalSeconds: number }[];
+  sections: { id: string; title: string; episodeCount: number; totalSeconds: number; cover?: string }[];
   episodes: SeasonOutlineEpisode[];
   currentSectionId?: string;
 }
@@ -203,7 +203,8 @@ export function readSeason(season: unknown, currentBvid?: string, currentCid?: n
       id: groupId,
       title: groupTitle,
       episodeCount: slice.length,
-      totalSeconds: slice.reduce((sum, episode) => sum + episode.duration, 0)
+      totalSeconds: slice.reduce((sum, episode) => sum + episode.duration, 0),
+      cover: normalizeCover(String(row.episode.arc?.pic || ''))
     });
   });
 
@@ -262,7 +263,7 @@ function buildCourse(viewData: Record<string, unknown>, pages: Record<string, un
 }
 
 function cacheKey(bvid: string) {
-  return `bundle:${bvid}`;
+  return `cover:${bvid}`;
 }
 
 function getCached(bvid: string): Course | null {

@@ -15,15 +15,15 @@ function fetchSignal(ms = 20000): AbortSignal {
 }
 
 function getClientCache(bvid: string): Course | null {
-  const mem = memCache.get('v3:' + bvid);
+  const mem = memCache.get('v4:' + bvid);
   if (mem && Date.now() - mem.ts < CLIENT_CACHE_TTL) return mem.data;
   if (typeof sessionStorage === 'undefined') return null;
   try {
-    const raw = sessionStorage.getItem('bc3_' + bvid);
+    const raw = sessionStorage.getItem('bc4_' + bvid);
     if (!raw) return null;
     const { data, ts } = JSON.parse(raw) as { data: Course; ts: number };
     if (Date.now() - ts > CLIENT_CACHE_TTL) return null;
-    memCache.set('v3:' + bvid, { data, ts });
+    memCache.set('v4:' + bvid, { data, ts });
     return data;
   } catch {
     return null;
@@ -32,10 +32,10 @@ function getClientCache(bvid: string): Course | null {
 
 function setClientCache(bvid: string, data: Course) {
   const entry = { data, ts: Date.now() };
-  memCache.set('v3:' + bvid, entry);
+  memCache.set('v4:' + bvid, entry);
   if (typeof sessionStorage === 'undefined') return;
   try {
-    sessionStorage.setItem('bc3_' + bvid, JSON.stringify(entry));
+    sessionStorage.setItem('bc4_' + bvid, JSON.stringify(entry));
   } catch {
     /* quota */
   }

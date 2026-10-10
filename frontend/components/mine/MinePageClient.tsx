@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { CONFIG } from '@/lib/config';
+import { displayBvid } from '@/lib/bvid';
 import { loadAllProgress, saveAllProgress } from '@/lib/storage';
 import { formatDuration } from '@/lib/format';
 import { normalizePlanDays } from '@/lib/plan-normalize';
@@ -75,7 +76,7 @@ export function MinePageClient() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-ink">{rec.title || rec.planSnapshot?.title || bvid}</p>
                   <p className="text-xs text-text3">
-                    {bvid} · {rec.planSnapshot ? formatDuration(rec.planSnapshot.totalSeconds) : ''}
+                    {displayBvid(bvid)} · {rec.planSnapshot ? formatDuration(rec.planSnapshot.totalSeconds) : ''}
                     {total > 0 ? ` · 已完成 ${done}/${total} 天` : ''}
                   </p>
                 </div>
