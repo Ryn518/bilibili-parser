@@ -10,6 +10,7 @@ import { normalizePlanDays } from '@/lib/plan-normalize';
 import { resolveCourseCover } from '@/components/plan/plan-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { CoverImage } from '@/components/ui/CoverImage';
+import { MineTabs } from '@/components/mine/MineTabs';
 
 export function MinePageClient() {
   const router = useRouter();
@@ -49,14 +50,16 @@ export function MinePageClient() {
   };
 
   return (
-    <div className="mx-auto max-w-[1080px] px-5 py-10 max-md:px-4 max-md:pb-28">
+    <div className="flex justify-center px-5 py-10 pb-28 max-md:px-4">
+      <div className="w-full min-w-0 max-w-[1080px]">
+      <MineTabs active="courses" />
       <h1 className="mb-6 text-2xl font-bold text-ink">我的课程</h1>
       {!auth.session ? (
         <p className="text-text2">请先登录后查看你的课程记录。</p>
       ) : entries.length === 0 ? (
         <p className="text-text2">还没有学习记录，去首页规划一门课程吧。</p>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
           {entries.map(([bvid, rec]) => {
             const done = rec.completedDays?.length || 0;
             const total = rec.planSnapshot ? normalizePlanDays(rec.planSnapshot.plan).length : 0;
@@ -65,7 +68,7 @@ export function MinePageClient() {
             return (
               <div
                 key={bvid}
-                className="flex cursor-pointer items-center gap-4 rounded-[14px] border border-border bg-surface p-4 shadow-card transition hover:border-accent/40 hover:shadow-lg"
+                className="flex min-w-0 w-full cursor-pointer items-center gap-4 overflow-hidden rounded-[14px] border border-border bg-surface p-4 shadow-card transition hover:border-accent/40 hover:shadow-lg"
                 onClick={() => openCourse(bvid)}
               >
                 <CoverImage
@@ -96,6 +99,7 @@ export function MinePageClient() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

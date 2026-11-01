@@ -16,6 +16,9 @@ interface PlazaComment {
   username: string;
   createdAt: string;
   likes?: string[];
+  likeAt?: Record<string, string>;
+  parentId?: string;
+  replyTo?: string;
 }
 
 export interface PlazaCommentPublic {
@@ -25,6 +28,8 @@ export interface PlazaCommentPublic {
   createdAt: string;
   likeCount: number;
   liked: boolean;
+  replyTo?: string;
+  replies?: PlazaCommentPublic[];
 }
 
 interface PlazaPost {
@@ -34,6 +39,7 @@ interface PlazaPost {
   authorKey: string;
   createdAt: string;
   likes: string[];
+  likeAt?: Record<string, string>;
   comments: PlazaComment[];
   images?: string[];
 }
@@ -104,6 +110,32 @@ export function readPlazaImage(name: string): { body: Buffer; type: string } | n
   return { body: fs.readFileSync(file), type };
 }
 
+function toPublicComment(item: PlazaComment, voterKey: string): PlazaCommentPublic {
+  return {
+    id: item.id,
+    content: item.content,
+    username: item.username,
+    createdAt: item.createdAt,
+    likeCount: (item.likes || []).length,
+    liked: !!voterKey && (item.likes || []).includes(voterKey),
+    replyTo: item.replyTo,
+    replies: []
+  };
+}
+
+function nestComments(comments: PlazaComment[], voterKey: string): PlazaCommentPublic[] {
+  const pubs = comments.map((item) => toPublicComment(item, voterKey));
+  const byId = new Map(pubs.map((item) => [item.id, item]));
+  const roots: PlazaCommentPublic[] = [];
+  comments.forEach((raw, i) => {
+    const pub = pubs[i];
+    const parent = raw.parentId ? byId.get(raw.parentId) : undefined;
+    if (parent) parent.replies = [...(parent.replies || []), pub];
+    else roots.push(pub);
+  });
+  return roots.reverse();
+}
+
 function toPublic(post: PlazaPost, voterKey: string): PlazaPostPublic {
   return {
     id: post.id,
@@ -113,14 +145,7 @@ function toPublic(post: PlazaPost, voterKey: string): PlazaPostPublic {
     likeCount: (post.likes || []).length,
     liked: !!voterKey && (post.likes || []).includes(voterKey),
     images: (post.images || []).map(imageUrl),
-    comments: [...(post.comments || [])].reverse().map((item) => ({
-      id: item.id,
-      content: item.content,
-      username: item.username,
-      createdAt: item.createdAt,
-      likeCount: (item.likes || []).length,
-      liked: !!voterKey && (item.likes || []).includes(voterKey)
-    }))
+    comments: nestComments(post.comments || [], voterKey)
   };
 }
 
@@ -182,12 +207,22 @@ export async function createPlazaPost(input: {
   return { post: toPublic(entry, authorKey) };
 }
 
-function toggleLikeList(likes: string[] | undefined, voterKey: string) {
+function toggleLikeList(
+  likes: string[] | undefined,
+  likeAt: Record<string, string> | undefined,
+  voterKey: string
+) {
   const next = [...(likes || [])];
+  const at = { ...(likeAt || {}) };
   const index = next.indexOf(voterKey);
-  if (index >= 0) next.splice(index, 1);
-  else next.push(voterKey);
-  return next;
+  if (index >= 0) {
+    next.splice(index, 1);
+    delete at[voterKey];
+  } else {
+    next.push(voterKey);
+    at[voterKey] = new Date().toISOString();
+  }
+  return { likes: next, likeAt: at };
 }
 
 export function togglePlazaLike(postId: string, voterKey: string, commentId?: string) {
@@ -199,15 +234,112 @@ export function togglePlazaLike(postId: string, voterKey: string, commentId?: st
   if (commentId) {
     const comment = (post.comments || []).find((item) => item.id === commentId);
     if (!comment) return { error: '评论不存在', status: 404 };
-    comment.likes = toggleLikeList(comment.likes, id);
+    const toggled = toggleLikeList(comment.likes, comment.likeAt, id);
+    comment.likes = toggled.likes;
+    comment.likeAt = toggled.likeAt;
   } else {
-    post.likes = toggleLikeList(post.likes, id);
+    const toggled = toggleLikeList(post.likes, post.likeAt, id);
+    post.likes = toggled.likes;
+    post.likeAt = toggled.likeAt;
   }
   save(list);
   return { post: toPublic(post, id) };
 }
 
-export async function addPlazaComment(input: { postId?: string; content?: string; username?: string }) {
+export type PlazaInboxKind = 'like' | 'comment' | 'comment_like';
+
+export type PlazaInboxItem = {
+  id: string;
+  kind: PlazaInboxKind;
+  at: string;
+  from: string;
+  postId: string;
+  postPreview: string;
+  commentPreview?: string;
+};
+
+function voterName(key: string) {
+  return key.startsWith('u:') ? key.slice(2) : key;
+}
+
+function isOwnPost(post: PlazaPost, username: string) {
+  return post.username === username || post.authorKey === `u:${username}`;
+}
+
+export function listPlazaInbox(username: string): PlazaInboxItem[] {
+  const me = String(username || '').trim();
+  if (!me) return [];
+  const meKey = `u:${me}`;
+  const items: PlazaInboxItem[] = [];
+
+  for (const post of load()) {
+    const postPreview = (post.content || '图片动态').replace(/\s+/g, ' ').trim().slice(0, 48);
+    if (isOwnPost(post, me)) {
+      for (const voter of post.likes || []) {
+        if (voter === meKey) continue;
+        items.push({
+          id: `like:${post.id}:${voter}`,
+          kind: 'like',
+          at: post.likeAt?.[voter] || post.createdAt,
+          from: voterName(voter),
+          postId: post.id,
+          postPreview
+        });
+      }
+      for (const comment of post.comments || []) {
+        if (comment.username === me) continue;
+        items.push({
+          id: `comment:${post.id}:${comment.id}`,
+          kind: 'comment',
+          at: comment.createdAt,
+          from: comment.username,
+          postId: post.id,
+          postPreview,
+          commentPreview: comment.content.slice(0, 80)
+        });
+      }
+    } else {
+      for (const comment of post.comments || []) {
+        if (comment.username === me || !comment.parentId) continue;
+        const parent = (post.comments || []).find((row) => row.id === comment.parentId);
+        if (parent?.username !== me) continue;
+        items.push({
+          id: `reply:${post.id}:${comment.id}`,
+          kind: 'comment',
+          at: comment.createdAt,
+          from: comment.username,
+          postId: post.id,
+          postPreview,
+          commentPreview: comment.content.slice(0, 80)
+        });
+      }
+    }
+    for (const comment of post.comments || []) {
+      if (comment.username !== me) continue;
+      for (const voter of comment.likes || []) {
+        if (voter === meKey) continue;
+        items.push({
+          id: `comment_like:${post.id}:${comment.id}:${voter}`,
+          kind: 'comment_like',
+          at: comment.likeAt?.[voter] || comment.createdAt,
+          from: voterName(voter),
+          postId: post.id,
+          postPreview,
+          commentPreview: comment.content.slice(0, 80)
+        });
+      }
+    }
+  }
+
+  return items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 120);
+}
+
+export async function addPlazaComment(input: {
+  postId?: string;
+  content?: string;
+  username?: string;
+  parentId?: string;
+}) {
   const content = String(input.content || '').trim();
   const username = String(input.username || '').trim().slice(0, MAX_NAME);
   if (!username) return { error: '请先登录', status: 401 };
@@ -225,6 +357,13 @@ export async function addPlazaComment(input: { postId?: string; content?: string
     createdAt: new Date().toISOString(),
     likes: []
   };
+  const parentId = String(input.parentId || '').trim();
+  if (parentId) {
+    const parent = (post.comments || []).find((item) => item.id === parentId);
+    if (!parent) return { error: '要回复的评论不存在', status: 404 };
+    comment.parentId = parent.parentId || parent.id;
+    comment.replyTo = parent.username;
+  }
   post.comments = post.comments || [];
   post.comments.push(comment);
   save(list);
@@ -251,7 +390,9 @@ export function deletePlazaComment(postId: string, commentId: string) {
   const post = list.find((item) => item.id === postId);
   if (!post) return { error: '内容不存在', status: 404 };
   const before = post.comments?.length || 0;
-  post.comments = (post.comments || []).filter((item) => item.id !== commentId);
+  post.comments = (post.comments || []).filter(
+    (item) => item.id !== commentId && item.parentId !== commentId
+  );
   if (post.comments.length === before) return { error: '评论不存在', status: 404 };
   save(list);
   return { ok: true };

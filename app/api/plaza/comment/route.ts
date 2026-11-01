@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
     const result = await addPlazaComment({
       postId: body.postId,
       content: body.content,
-      username: payload.username
+      username: payload.username,
+      parentId: body.parentId ? String(body.parentId) : undefined
     });
     if (result.error) {
       return NextResponse.json({ code: -1, message: result.error }, { status: result.status });

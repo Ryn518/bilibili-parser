@@ -10,5 +10,6 @@ export const CONFIG = {
   CACHE_TTL: 30 * 60 * 1000,
   AUTH_RECORDS_KEY: 'bili-planner-auth-records',
   /** 「我的课程」跳转首页时暂存 BV，防止路由参数丢失 */
-  PENDING_COURSE_KEY: 'bili-pending-course'
+  PENDING_COURSE_KEY: 'bili-pending-course',
+  INBOX_SEEN_KEY: 'bili-inbox-seen'
 } as const;

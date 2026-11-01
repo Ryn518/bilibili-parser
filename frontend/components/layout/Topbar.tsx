@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useUiStore } from '@/hooks/useUiStore';
+import { InboxBell } from '@/components/layout/InboxBell';
 
 const NAV = [
   { href: '/', label: '功能' },
@@ -35,8 +36,26 @@ export function Topbar() {
       <div className="mx-auto max-w-[1080px] px-5 py-3 max-md:px-3 max-md:py-2">
         <div className="flex items-center justify-between gap-2">
           <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2 text-[0.95rem] font-bold text-ink">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-deep text-sm text-white shadow">
-              📚
+            <span className="flex h-8 w-8 overflow-hidden rounded-full shadow">
+              <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden="true">
+                <defs>
+                  <linearGradient id="dayplan-mark" x1="6" y1="2" x2="28" y2="30">
+                    <stop stopColor="#60A5FA" />
+                    <stop offset="1" stopColor="#2563EB" />
+                  </linearGradient>
+                </defs>
+                <circle cx="16" cy="16" r="16" fill="url(#dayplan-mark)" />
+                <rect x="8.5" y="10" width="15" height="13.5" rx="3" fill="#fff" />
+                <path d="M8.5 13.2h15" stroke="#BFDBFE" strokeWidth="3.4" />
+                <path d="M12 8.4v3.2M20 8.4v3.2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+                <path
+                  d="M12.6 19.1l2.15 2.15 4.7-4.7"
+                  stroke="#2563EB"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </span>
             <span>DayPlan</span>
             <span className="ml-0.5 hidden rounded-full border border-border bg-surface2 px-2 py-0.5 text-[0.68rem] font-medium text-text2 md:inline">
@@ -60,7 +79,8 @@ export function Topbar() {
             )}
           </nav>
 
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-2">
+            <InboxBell />
             <div
               className={`user-area flex items-center gap-1.5 rounded-full border py-0.5 pl-1 pr-1 transition ${
                 userAreaClass === 'free'

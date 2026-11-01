@@ -16,6 +16,8 @@ interface PlazaComment {
   createdAt: string;
   likeCount: number;
   liked: boolean;
+  replyTo?: string;
+  replies?: PlazaComment[];
 }
 
 interface PlazaPost {
@@ -157,6 +159,115 @@ function LikeChip({ liked, count, onClick }: { liked: boolean; count: number; on
   );
 }
 
+function flattenReplies(comments: PlazaComment[]): PlazaComment[] {
+  return comments.flatMap((item) => [item, ...flattenReplies(item.replies || [])]);
+}
+
+function countComments(comments: PlazaComment[]): number {
+  return comments.reduce((sum, item) => sum + 1 + flattenReplies(item.replies || []).length, 0);
+}
+
+function CommentRow({
+  item,
+  canDelete,
+  onLike,
+  onReply,
+  onDelete
+}: {
+  item: PlazaComment;
+  canDelete: boolean;
+  onLike: (commentId: string) => void;
+  onReply: (parentId: string, text: string) => Promise<void>;
+  onDelete: (commentId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+
+  const send = async () => {
+    const next = text.trim();
+    if (!next) return;
+    await onReply(item.id, next);
+    setText('');
+    setOpen(false);
+  };
+
+  return (
+    <div className="flex gap-2.5">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D9E6F5] text-[11px] font-semibold text-accent-text">
+        {(item.username || '访').slice(0, 1).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="font-semibold text-ink">{item.username}</span>
+          {item.replyTo ? <span className="text-text3">回复 {item.replyTo}</span> : null}
+          <span className="text-text3">{formatTime(item.createdAt)}</span>
+          {canDelete ? (
+            <button type="button" onClick={() => onDelete(item.id)} className="ml-auto text-red-400 hover:text-red-500">
+              删除
+            </button>
+          ) : null}
+        </div>
+        <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-text2">{item.content}</p>
+        <div className="mt-1.5 flex items-center gap-3 text-xs text-text3">
+          <button type="button" onClick={() => setOpen((v) => !v)} className="hover:text-accent-text">
+            回复
+          </button>
+          <button type="button" onClick={() => onLike(item.id)} className={item.liked ? 'font-medium text-accent-text' : 'hover:text-accent-text'}>
+            赞{item.likeCount ? ` ${item.likeCount}` : ''}
+          </button>
+        </div>
+        {open ? (
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={`回复 ${item.username}`}
+              className="min-w-0 flex-1 rounded-full border border-border bg-white px-3 py-1.5 text-sm outline-none placeholder:text-text3"
+            />
+            <button type="button" onClick={() => void send()} className="btn-accent shrink-0">
+              发布
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function CommentCard({
+  item,
+  canDelete,
+  onLike,
+  onReply,
+  onDelete
+}: {
+  item: PlazaComment;
+  canDelete: boolean;
+  onLike: (commentId: string) => void;
+  onReply: (parentId: string, text: string) => Promise<void>;
+  onDelete: (commentId: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl bg-[#F3F6FB] px-4 py-3">
+      <CommentRow item={item} canDelete={canDelete} onLike={onLike} onReply={onReply} onDelete={onDelete} />
+      {item.replies?.length ? (
+        <div className="mt-3 ml-3 space-y-3 border-l-2 border-[#D5DEEA] pl-4">
+          {flattenReplies(item.replies).map((reply) => (
+            <CommentRow
+              key={reply.id}
+              item={reply}
+              canDelete={canDelete}
+              onLike={onLike}
+              onReply={onReply}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function PlazaPage() {
   const auth = useAuth();
   const showToast = useToast();
@@ -194,6 +305,15 @@ export default function PlazaPage() {
     if (auth.loading) return;
     load().finally(() => setLoading(false));
   }, [auth.loading, load]);
+
+  useEffect(() => {
+    if (loading || !posts.length) return;
+    const hash = window.location.hash.replace('#', '');
+    if (!hash.startsWith('plaza-')) return;
+    const el = document.getElementById(hash);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpenId(hash.slice('plaza-'.length));
+  }, [loading, posts]);
 
   const addImages = async (files: File[]) => {
     if (!files.length) return;
@@ -265,12 +385,12 @@ export default function PlazaPage() {
     }
   };
 
-  const comment = async (postId: string) => {
+  const comment = async (postId: string, parentId?: string, raw?: string) => {
     if (!auth.session?.token) {
       openAuth('login');
       return;
     }
-    const text = (drafts[postId] || '').trim();
+    const text = (raw ?? drafts[postId] ?? '').trim();
     if (!text) {
       showToast('请填写评论');
       return;
@@ -281,14 +401,14 @@ export default function PlazaPage() {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${auth.session.token}`
       },
-      body: JSON.stringify({ postId, content: text })
+      body: JSON.stringify({ postId, content: text, parentId })
     });
     const json = await res.json();
     if (!res.ok || json.code !== 0) {
       showToast(json.message || '评论失败');
       return;
     }
-    setDrafts((prev) => ({ ...prev, [postId]: '' }));
+    if (!parentId) setDrafts((prev) => ({ ...prev, [postId]: '' }));
     showToast('评论已发布');
     setOpenId(postId);
     await load();
@@ -416,7 +536,7 @@ export default function PlazaPage() {
             {visiblePosts.map((post) => {
               const opened = openId === post.id;
               return (
-                <li key={post.id} className="border-t border-[#E6EDF5] px-5 py-5 sm:px-6">
+                <li id={`plaza-${post.id}`} key={post.id} className="border-t border-[#E6EDF5] px-5 py-5 sm:px-6">
                   <div className="flex gap-3">
                     <Avatar name={post.username} />
                     <div className="min-w-0 flex-1">
@@ -452,7 +572,7 @@ export default function PlazaPage() {
                             opened ? 'bg-accent-light text-accent-text' : 'bg-[#E6EDF6] text-text3 hover:text-accent-text'
                           }`}
                         >
-                          评论 {post.comments.length}
+                          评论 {countComments(post.comments)}
                         </button>
                         <LikeChip liked={post.liked} count={post.likeCount} onClick={() => like(post.id)} />
                       </div>
@@ -460,32 +580,19 @@ export default function PlazaPage() {
                       {opened && (
                         <div className="mt-4 space-y-3">
                           {post.comments.map((item) => (
-                            <div key={item.id} className="rounded-[18px] bg-[#E6EDF6] px-4 py-3">
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-xs font-semibold text-ink">
-                                  {item.username}
-                                  <span className="ml-2 font-normal text-text3">{formatTime(item.createdAt)}</span>
-                                </p>
-                                {auth.isAdmin && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setPendingDelete({
-                                        message: '确定删除这条评论吗？',
-                                        run: () => removeComment(post.id, item.id)
-                                      })
-                                    }
-                                    className="text-[0.7rem] text-red-400 hover:text-red-500"
-                                  >
-                                    删除
-                                  </button>
-                                )}
-                              </div>
-                              <div className="mt-1.5 flex items-end justify-between gap-3">
-                                <p className="whitespace-pre-wrap text-sm leading-6 text-text2">{item.content}</p>
-                                <LikeChip liked={item.liked} count={item.likeCount || 0} onClick={() => like(post.id, item.id)} />
-                              </div>
-                            </div>
+                            <CommentCard
+                              key={item.id}
+                              item={item}
+                              canDelete={auth.isAdmin}
+                              onLike={(commentId) => like(post.id, commentId)}
+                              onReply={(parentId, text) => comment(post.id, parentId, text)}
+                              onDelete={(commentId) =>
+                                setPendingDelete({
+                                  message: '确定删除这条评论吗？底下的回复也会一起去掉。',
+                                  run: () => removeComment(post.id, commentId)
+                                })
+                              }
+                            />
                           ))}
                           <div className="flex items-center gap-3 rounded-[22px] bg-[#E6EDF6] px-4 py-2.5">
                             <input
