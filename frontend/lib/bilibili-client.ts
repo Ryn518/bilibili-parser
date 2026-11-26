@@ -1,6 +1,8 @@
 import type { Course } from './types';
 import { normalizeCover } from './format';
-import { resolveVideoId } from './bvid';
+import { loadBilibiliView } from './bilibili-jsonp';
+import { extensionConnected, planningNeedsExtension, requestCourseFromExtension } from './extension-bridge';
+import { resolveVideoId, parsePasteInput } from './bvid';
 
 const CLIENT_CACHE_TTL = 30 * 60 * 1000;
 const memCache = new Map<string, { data: Course; ts: number }>();
@@ -41,26 +43,84 @@ function setClientCache(bvid: string, data: Course) {
   }
 }
 
-export async function fetchCourse(input: string): Promise<Course> {
-  const bvid = await resolveVideoId(input);
+const shortLinkHint = '这是短链接。请先在浏览器打开，再把地址栏里带 BV 号的完整链接贴过来';
 
+export async function fetchCourse(input: string): Promise<Course> {
+  if (extensionConnected()) return courseFromExtension(input);
+
+  const parsed = parsePasteInput(input);
+  const id = parsed.videoId;
+  if (typeof id === 'string' || (id && 'aid' in id)) {
+    const knownBvid = typeof id === 'string' ? id : '';
+    if (knownBvid) {
+      const cached = getClientCache(knownBvid);
+      if (cached?.episodes?.length) {
+        return { ...cached, cover: normalizeCover(cached.cover || '') };
+      }
+    }
+    try {
+      return await courseFromBrowser(typeof id === 'string' ? { bvid: id } : { aid: id.aid });
+    } catch (error) {
+      if (planningNeedsExtension()) throw error;
+    }
+  } else if (planningNeedsExtension()) {
+    throw new Error(shortLinkHint);
+  }
+
+  const bvid = await resolveVideoId(input);
   const cached = getClientCache(bvid);
   if (cached?.episodes?.length) {
     return { ...cached, cover: normalizeCover(cached.cover || '') };
   }
+  const data = await courseFromServer(bvid);
+  setClientCache(data.bvid || bvid, data);
+  return data;
+}
 
+async function courseFromBrowser(query: { bvid?: string; aid?: string }): Promise<Course> {
+  const view = await loadBilibiliView(query);
+  return shapeView(view, '已读到课程，但没有整理出分集');
+}
+
+async function courseFromExtension(input: string): Promise<Course> {
+  const parsed = parsePasteInput(input);
+  if (typeof parsed.videoId === 'string') {
+    const cached = getClientCache(parsed.videoId);
+    if (cached?.episodes?.length) {
+      return { ...cached, cover: normalizeCover(cached.cover || '') };
+    }
+  }
+  const viaPlugin = await requestCourseFromExtension(input);
+  const again = getClientCache(viaPlugin.bvid);
+  if (again?.episodes?.length) {
+    return { ...again, cover: normalizeCover(again.cover || '') };
+  }
+  return shapeView(viaPlugin.view, '插件已取到课程，但没有整理出分集');
+}
+
+async function shapeView(view: Record<string, unknown>, emptyMessage: string): Promise<Course> {
+  const res = await fetch('/api/bilibili/shape', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ data: view }),
+    signal: fetchSignal(20000)
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.code !== 0 || !json.data?.episodes?.length) {
+    throw new Error(json.message || emptyMessage);
+  }
+  const data = { ...(json.data as Course), cover: normalizeCover((json.data as Course).cover || '') };
+  setClientCache(data.bvid || String(view.bvid || ''), data);
+  return data;
+}
+
+async function courseFromServer(bvid: string): Promise<Course> {
   const res = await fetch(`/api/bilibili?bvid=${encodeURIComponent(bvid)}&type=course`, {
     signal: fetchSignal(20000)
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `后端 HTTP ${res.status}`);
-  }
-  const json = await res.json();
-  if (json.code !== 0 || !json.data?.episodes?.length) {
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.code !== 0 || !json.data?.episodes?.length) {
     throw new Error(json.message || '后端返回数据无效');
   }
-  const data = { ...(json.data as Course), cover: normalizeCover((json.data as Course).cover || '') };
-  setClientCache(data.bvid || bvid, data);
-  return data;
+  return { ...(json.data as Course), cover: normalizeCover((json.data as Course).cover || '') };
 }

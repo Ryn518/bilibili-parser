@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useDraftState } from '@/hooks/useDraftState';
 import { parsePasteInput } from '@/lib/bvid';
+import { watchExtension } from '@/lib/extension-bridge';
 import { clampDailyMinutes } from '@/lib/planner';
 import { usePlan } from '@/components/plan/PlanPage';
 import { PlanSettingsRow, type PlanInputMode } from '@/components/plan/PlanSettingsRow';
@@ -27,6 +28,7 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
   const showToast = useToast();
   const [url, setUrl] = useDraftState('plan-url', '');
   const [hint, setHint] = useState('');
+  const [pluginOn, setPluginOn] = useState(false);
   const [dailyDraft, setDailyDraft] = useDraftState('plan-daily', String(dailyMinutes));
   const [daysDraft, setDaysDraft] = useDraftState('plan-days', targetDays ? String(targetDays) : '');
   const [mode, setMode] = useDraftState<PlanInputMode>('plan-mode', targetDays ? 'days' : 'daily');
@@ -35,6 +37,8 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
   useEffect(() => {
     setPlaybackSpeed(speedDraft);
   }, [speedDraft, setPlaybackSpeed]);
+
+  useEffect(() => watchExtension(setPluginOn), []);
 
   useEffect(() => {
     if (!url.trim()) return;
@@ -162,6 +166,9 @@ export function LandingHero({ continueCache, onContinue, onDismissContinue }: Pr
           {hint}
         </p>
       )}
+      {pluginOn ? (
+        <p className="mb-3 text-left text-xs text-text2">本机插件已连接。开始规划会用插件取课程，再由本站整理。</p>
+      ) : null}
 
       <PlanSettingsRow
         mode={mode}
